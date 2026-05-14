@@ -1,0 +1,4 @@
+OmniKB operations notes:
+- The API runs in a Docker container on port 8000.
+- Qdrant runs in a Docker container on port 6333.
+- Ingestion supports markdown, txt, and pdf files.

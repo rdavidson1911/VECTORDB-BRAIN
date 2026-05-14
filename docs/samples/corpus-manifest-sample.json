@@ -1,0 +1,37 @@
+{
+  "manifest_version": "1",
+  "generated_at": "2026-05-02T08:42:00Z",
+  "root": "I:/VECTORDB-BRAIN/data/sources",
+  "entries": [
+    {
+      "source_path": "data/sources/sample-note.md",
+      "absolute_path": "I:/VECTORDB-BRAIN/data/sources/sample-note.md",
+      "file_type": "md",
+      "size_bytes": 252,
+      "source_mtime_iso": "2026-05-02T00:00:00+00:00",
+      "content_hash": "a62f083de0e1edaa8c33887c4c5bc17bca698485a68c3d15230b6d1684ad2fe4",
+      "char_count": 245,
+      "ingest_eligible": true
+    },
+    {
+      "source_path": "data/sources/sample-ops.txt",
+      "absolute_path": "I:/VECTORDB-BRAIN/data/sources/sample-ops.txt",
+      "file_type": "txt",
+      "size_bytes": 177,
+      "source_mtime_iso": "2026-05-02T00:00:00+00:00",
+      "content_hash": "721b64c31834c0d9b71949a70018b44e3c6366afa61382c8b313706e6fbe2b84",
+      "char_count": 177,
+      "ingest_eligible": true
+    },
+    {
+      "source_path": "data/sources/sample-rag.md",
+      "absolute_path": "I:/VECTORDB-BRAIN/data/sources/sample-rag.md",
+      "file_type": "md",
+      "size_bytes": 244,
+      "source_mtime_iso": "2026-05-02T00:00:00+00:00",
+      "content_hash": "390f79b112842f10eb4ab9edd56ad4031ea4541317d16803f5566c5462403179",
+      "char_count": 244,
+      "ingest_eligible": true
+    }
+  ]
+}
