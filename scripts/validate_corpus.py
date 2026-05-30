@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from omnikb.curation.validate import report_to_dict, validate_corpus
+from omnikb.curation.validate import CurationPolicy, report_to_dict, validate_corpus
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -38,12 +38,45 @@ def main() -> int:
         default=None,
         help="If set, write full validation report JSON to this path.",
     )
+    parser.add_argument(
+        "--strict-frontmatter",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Enable frontmatter gate for .md files under gated roots (default: on).",
+    )
+    parser.add_argument(
+        "--gate-root",
+        type=str,
+        default="curated",
+        dest="gate_root",
+        help="Subpath within --root to apply the frontmatter gate (default: curated).",
+    )
+    parser.add_argument(
+        "--no-gate",
+        action="store_true",
+        default=False,
+        help="Disable frontmatter gate entirely (prints a visible warning).",
+    )
     args = parser.parse_args()
+
+    if args.no_gate:
+        print(
+            "WARNING: --no-gate is set — frontmatter gate is DISABLED for this run.",
+            file=sys.stderr,
+        )
+        policy = CurationPolicy(gate_enabled=False)
+    else:
+        policy = CurationPolicy(
+            gate_enabled=True,
+            gate_roots=[args.gate_root],
+            strict_frontmatter=args.strict_frontmatter,
+        )
 
     report = validate_corpus(
         args.root.resolve(),
         recursive=args.recursive,
         max_file_bytes=args.max_file_bytes,
+        policy=policy,
     )
     payload = report_to_dict(report)
     if args.json_out:

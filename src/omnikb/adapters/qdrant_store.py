@@ -165,49 +165,76 @@ class QdrantStore:
         info = self.client.get_collection(self.collection)
         return asdict(info) if hasattr(info, "__dataclass_fields__") else info.model_dump()
 
-    def list_sources(self, limit: int = 1000) -> list[dict[str, Any]]:
-        points, _ = self.client.scroll(
-            collection_name=self.collection,
-            limit=limit,
-            with_payload=True,
-            with_vectors=False,
-        )
+    def list_sources(self, max_points: int | None = 1000) -> list[dict[str, Any]]:
         by_source: dict[str, dict[str, Any]] = {}
-        for point in points:
-            payload = dict(point.payload or {})
-            source_path = str(payload.get("source_path", "unknown"))
-            entry = by_source.setdefault(
-                source_path,
-                {
-                    "source_path": source_path,
-                    "file_type": str(payload.get("file_type", "unknown")),
-                    "chunk_count": 0,
-                    "latest_updated_at": payload.get("updated_at"),
-                    "content_hash": payload.get("content_hash"),
-                },
+        offset = None
+        page_size = 256
+        scanned = 0
+        while True:
+            batch_limit = page_size
+            if max_points is not None:
+                remaining = max_points - scanned
+                if remaining <= 0:
+                    break
+                batch_limit = min(page_size, remaining)
+            points, offset = self.client.scroll(
+                collection_name=self.collection,
+                limit=batch_limit,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False,
             )
-            entry["chunk_count"] += 1
-            updated_at = payload.get("updated_at")
-            if isinstance(updated_at, str) and (
-                entry["latest_updated_at"] is None or updated_at > entry["latest_updated_at"]
-            ):
-                entry["latest_updated_at"] = updated_at
+            if not points:
+                break
+            scanned += len(points)
+            for point in points:
+                payload = dict(point.payload or {})
+                source_path = str(payload.get("source_path", "unknown"))
+                entry = by_source.setdefault(
+                    source_path,
+                    {
+                        "source_path": source_path,
+                        "file_type": str(payload.get("file_type", "unknown")),
+                        "chunk_count": 0,
+                        "latest_updated_at": payload.get("updated_at"),
+                        "content_hash": payload.get("content_hash"),
+                    },
+                )
+                entry["chunk_count"] += 1
+                updated_at = payload.get("updated_at")
+                if isinstance(updated_at, str) and (
+                    entry["latest_updated_at"] is None or updated_at > entry["latest_updated_at"]
+                ):
+                    entry["latest_updated_at"] = updated_at
+            if offset is None:
+                break
         return sorted(by_source.values(), key=lambda item: item["chunk_count"], reverse=True)
 
+    @staticmethod
+    def _points_count_from_stats(stats: dict[str, Any], fallback: int) -> int:
+        for key in ("points_count", "vectors_count", "indexed_vectors_count"):
+            value = stats.get(key)
+            if value is not None:
+                return int(value)
+        return fallback
+
     def corpus_summary(self) -> dict[str, Any]:
-        sources = self.list_sources(limit=5000)
+        sources = self.list_sources(max_points=None)
         file_type_counts: dict[str, int] = {}
         chunk_count = 0
         for source in sources:
             file_type = source.get("file_type") or "unknown"
-            file_type_counts[file_type] = file_type_counts.get(file_type, 0) + 1
-            chunk_count += int(source.get("chunk_count", 0))
+            chunks = int(source.get("chunk_count", 0))
+            file_type_counts[file_type] = file_type_counts.get(file_type, 0) + chunks
+            chunk_count += chunks
         stats = self.collection_stats()
-        vectors_count = int(stats.get("vectors_count", chunk_count))
+        points_count = self._points_count_from_stats(stats, chunk_count)
+        indexed = stats.get("indexed_vectors_count")
+        vectors_count = int(indexed) if indexed is not None else points_count
         return {
             "collection": self.collection,
             "vectors_count": vectors_count,
-            "chunks_count": chunk_count,
+            "chunks_count": points_count,
             "sources_count": len(sources),
             "file_type_counts": file_type_counts,
         }

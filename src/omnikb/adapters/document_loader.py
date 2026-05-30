@@ -31,7 +31,7 @@ def load_document(path: Path) -> SourceDocument:
     digest = sha256(text.encode("utf-8")).hexdigest()
     mtime = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
     return SourceDocument(
-        source_path=str(resolved),
+        source_path=resolved.as_posix(),
         text=text,
         content_hash=digest,
         updated_at=mtime,
@@ -41,7 +41,11 @@ def load_document(path: Path) -> SourceDocument:
 
 def _read_text(path: Path) -> str:
     suffix = path.suffix.lower()
-    if suffix in {".md", ".txt"}:
+    if suffix == ".md":
+        from omnikb.curation.frontmatter import frontmatter_body
+
+        return frontmatter_body(path)
+    if suffix == ".txt":
         return path.read_text(encoding="utf-8", errors="ignore")
     if suffix == ".pdf":
         reader = PdfReader(str(path))

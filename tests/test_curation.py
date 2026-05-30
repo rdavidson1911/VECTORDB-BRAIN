@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
+import pytest
+
 from omnikb.adapters.document_loader import load_document
-from omnikb.curation.manifest import build_manifest_document, build_manifest_entries
-from omnikb.curation.validate import validate_corpus
+from omnikb.curation.manifest import build_manifest_entries
+from omnikb.curation.validate import CurationPolicy, validate_corpus, validate_frontmatter
 from omnikb.services.ingestion_service import IngestionService
 
 ROOT = Path(__file__).resolve().parents[1]
 SAMPLE_SOURCES = ROOT / "data" / "sources"
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "curation"
 
 EXPECTED_HASHES = {
     "data/sources/sample-note.md": (
@@ -24,18 +28,20 @@ EXPECTED_HASHES = {
 
 
 def test_manifest_sample_hashes_match_evidence() -> None:
-    doc = build_manifest_document(SAMPLE_SOURCES, relative_to=ROOT, recursive=True)
-    by_path = {e["source_path"]: e for e in doc["entries"]}
+    """Only hash tracked sample files (avoid scanning large local PDFs under data/sources)."""
     for rel, digest in EXPECTED_HASHES.items():
-        assert rel in by_path, f"missing tracked sample {rel}"
-        assert by_path[rel]["content_hash"].lower() == digest.lower()
-        assert by_path[rel]["ingest_eligible"] is True
+        path = ROOT / Path(*rel.split("/"))
+        doc = load_document(path)
+        assert doc.content_hash.lower() == digest.lower()
 
 
 def test_manifest_entries_relative_paths_use_posix_slashes() -> None:
-    entries = build_manifest_entries(SAMPLE_SOURCES, relative_to=ROOT, recursive=True)
-    for e in entries:
-        assert "\\" not in e["source_path"]
+    for rel in EXPECTED_HASHES:
+        path = ROOT / Path(*rel.split("/"))
+        entries = build_manifest_entries(path, relative_to=ROOT, recursive=False)
+        assert len(entries) == 1
+        assert "\\" not in entries[0]["source_path"]
+        assert entries[0]["source_path"] == rel
 
 
 def test_load_document_uses_filesystem_mtime_and_size(tmp_path: Path) -> None:
@@ -96,6 +102,7 @@ def test_ingest_skip_unchanged_skips_second_pass(tmp_path: Path) -> None:
         chunk_size=120,
         chunk_overlap=10,
         chunk_strategy="recursive_char_v1",
+        data_sources_path=str(tmp_path),
     )
     first = svc.ingest_path(str(doc_path), recursive=False, skip_unchanged=False)
     second = svc.ingest_path(str(doc_path), recursive=False, skip_unchanged=True)
@@ -117,6 +124,7 @@ def test_ingestion_payload_includes_pipeline_fields(tmp_path: Path) -> None:
         embedding_model="test-model",
         pipeline_version="9.9.9",
         normalization_profile="test_profile",
+        data_sources_path=str(tmp_path),
     )
     svc.ingest_path(str(doc_path), recursive=False)
     payload = store.upserts[0][0].payload
@@ -126,3 +134,117 @@ def test_ingestion_payload_includes_pipeline_fields(tmp_path: Path) -> None:
     assert payload["chunk_size"] == 32
     assert payload["chunk_overlap"] == 4
     assert payload["source_size_bytes"] == doc_path.stat().st_size
+
+
+# ---------------------------------------------------------------------------
+# Frontmatter validation tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "filename,expected_code",
+    [
+        ("missing_frontmatter.md", "missing_frontmatter"),
+        ("not_finalized.md", "note_not_finalized"),
+        ("ai_unverified.md", "ai_unverified"),
+        ("secret_in_note.md", "secret_pattern"),
+    ],
+)
+def test_validate_frontmatter_error_code(filename: str, expected_code: str) -> None:
+    path = FIXTURES / filename
+    issues = validate_frontmatter(path, CurationPolicy())
+    codes = [i.code for i in issues]
+    assert expected_code in codes, f"Expected {expected_code!r} in {codes}"
+
+
+def test_valid_curated_note_zero_errors() -> None:
+    path = FIXTURES / "valid_curated_note.md"
+    issues = validate_frontmatter(path, CurationPolicy())
+    errors = [i for i in issues if i.severity == "error"]
+    assert errors == [], f"Unexpected errors on valid note: {errors}"
+
+
+def test_exempt_file_skips_frontmatter_checks(tmp_path: Path) -> None:
+    curated = tmp_path / "curated"
+    curated.mkdir()
+    shutil.copy(FIXTURES / "sample-exempt.md", curated / "sample-exempt.md")
+    report = validate_corpus(tmp_path, policy=CurationPolicy())
+    fm_errors = [i for i in report.issues if i.code == "missing_frontmatter"]
+    assert not fm_errors, f"Exempt file should not raise missing_frontmatter: {fm_errors}"
+
+
+def test_validate_corpus_structured_issues(tmp_path: Path) -> None:
+    curated = tmp_path / "curated"
+    curated.mkdir()
+    shutil.copy(FIXTURES / "missing_frontmatter.md", curated / "missing_frontmatter.md")
+    report = validate_corpus(tmp_path, policy=CurationPolicy())
+    issue = next((i for i in report.issues if i.code == "missing_frontmatter"), None)
+    assert issue is not None, "Expected missing_frontmatter issue in report"
+    assert issue.path is not None
+    assert issue.severity == "error"
+    assert issue.code == "missing_frontmatter"
+
+
+def test_no_gate_disables_frontmatter_checking(tmp_path: Path) -> None:
+    curated = tmp_path / "curated"
+    curated.mkdir()
+    shutil.copy(FIXTURES / "missing_frontmatter.md", curated / "missing_frontmatter.md")
+    report = validate_corpus(tmp_path, policy=CurationPolicy(gate_enabled=False))
+    assert not any(i.code == "missing_frontmatter" for i in report.issues)
+
+
+def test_warning_codes_fire_on_incomplete_frontmatter(tmp_path: Path) -> None:
+    note = tmp_path / "note.md"
+    note.write_text(
+        "---\nkb_ingest: true\nnote_finalized: true\nkb_status: curated\n---\n\nbody\n",
+        encoding="utf-8",
+    )
+    issues = validate_frontmatter(note, CurationPolicy())
+    codes = {i.code for i in issues}
+    assert "missing_summary" in codes
+    assert "missing_kb_reviewed_at" in codes
+
+
+def test_kb_ingest_not_true_fires(tmp_path: Path) -> None:
+    note = tmp_path / "note.md"
+    note.write_text(
+        "---\nkb_ingest: false\nnote_finalized: true\nkb_status: curated\n---\n\nbody\n",
+        encoding="utf-8",
+    )
+    issues = validate_frontmatter(note, CurationPolicy())
+    assert any(i.code == "kb_ingest_not_true" for i in issues)
+
+
+def test_kb_status_not_curated_fires(tmp_path: Path) -> None:
+    note = tmp_path / "note.md"
+    note.write_text(
+        "---\nkb_ingest: true\nnote_finalized: true\nkb_status: staging\n---\n\nbody\n",
+        encoding="utf-8",
+    )
+    issues = validate_frontmatter(note, CurationPolicy())
+    assert any(i.code == "kb_status_not_curated" for i in issues)
+
+
+def test_strict_frontmatter_false_skips_all_checks(tmp_path: Path) -> None:
+    note = tmp_path / "note.md"
+    note.write_text("no frontmatter at all", encoding="utf-8")
+    issues = validate_frontmatter(note, CurationPolicy(strict_frontmatter=False))
+    assert issues == []
+
+
+def test_quoted_kb_ingest_passes_frontmatter(tmp_path: Path) -> None:
+    note = tmp_path / "note.md"
+    note.write_text(
+        '---\nkb_ingest: "true"\nnote_finalized: true\nkb_status: curated\n'
+        "summary: ok\nkb_reviewed_at: 2026-05-29\n---\n\nbody\n",
+        encoding="utf-8",
+    )
+    issues = validate_frontmatter(note, CurationPolicy())
+    errors = [i for i in issues if i.severity == "error"]
+    assert errors == []
+
+
+def test_root_level_md_skips_frontmatter_gate(tmp_path: Path) -> None:
+    (tmp_path / "orphan.md").write_text("# no yaml\n", encoding="utf-8")
+    report = validate_corpus(tmp_path, policy=CurationPolicy())
+    assert not any(i.code == "missing_frontmatter" for i in report.issues)

@@ -2,6 +2,10 @@
 
 Local Docker Desktop microservice scaffold for a vector-enabled knowledge base on Windows 11 Pro.
 
+**License:** MIT — see [LICENSE](LICENSE). **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). **Security:** [SECURITY.md](SECURITY.md).
+
+**Vision (layered memory vs naive RAG):** short overview in [docs/vision-beyond-rag.md](docs/vision-beyond-rag.md); full architecture in [docs/layered-knowledge-architecture.md](docs/layered-knowledge-architecture.md).
+
 ## Stack
 
 - FastAPI API service (`api`) for ingest/query orchestration.
@@ -14,8 +18,9 @@ Local Docker Desktop microservice scaffold for a vector-enabled knowledge base o
 - `src/omnikb/api`: HTTP routes and request models.
 - `src/omnikb/services`: ingestion and query use-cases.
 - `src/omnikb/adapters`: document loading, embeddings, Qdrant implementation.
+- `src/omnikb/curation`: manifests, frontmatter parsing, validation gate, `CurationGateError`.
 - `src/omnikb/domain`: chunking and core types.
-- `data/sources`: bind-mounted source corpus.
+- `data/sources`: bind-mounted source corpus (use `curated/` for gated production notes).
 - `data/qdrant`: persistent Qdrant data.
 
 ## Quick Start (Windows PowerShell)
@@ -27,20 +32,29 @@ Local Docker Desktop microservice scaffold for a vector-enabled knowledge base o
    - `docker compose up --build -d`
 4. Check API:
    - `Invoke-RestMethod http://localhost:8000/health`
-5. Ingest the mounted corpus:
-   - `Invoke-RestMethod -Method Post -Uri http://localhost:8000/ingest/path -ContentType application/json -Body '{"path":"/data/sources","recursive":true}'`
-6. Query:
+5. **Validate** curated content (recommended before first ingest):
+   - `python scripts/validate_corpus.py --root data/sources/curated`
+   - Or `Invoke-RestMethod -Method Post -Uri http://localhost:8000/curation/validate -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
+6. Ingest the mounted corpus (notes under `data/sources/curated` must pass the curation gate when enabled):
+   - `Invoke-RestMethod -Method Post -Uri http://localhost:8000/ingest/path -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
+7. Query:
    - `Invoke-RestMethod -Method Post -Uri http://localhost:8000/query -ContentType application/json -Body '{"query":"What is in my vault?","limit":5}'`
 
 ## API Endpoints
 
 - `GET /health`
-- `POST /ingest/path`
+- `POST /curation/validate` — dry-run validation (same rules as ingest gate)
+- `POST /ingest/path` — optional body fields: `skip_unchanged`, `allow_quality_override`
+- `POST /ingest/file`
 - `POST /query`
 - `GET /collections/{name}/stats`
 - `GET /corpus/summary`
 - `GET /corpus/sources`
 - `POST /ingest/preview`
+
+**Curation environment variables** (see `.env.example`): `CURATION_GATE_ENABLED`, `CURATION_GATE_ROOTS`, `CURATION_ALLOW_OVERRIDE`.
+
+Technical flow (functions, file types, 422 gate): [docs/ingestion-and-curation-architecture.md](docs/ingestion-and-curation-architecture.md).
 
 OpenAPI docs are available at `http://localhost:8000/docs`.
 
@@ -85,23 +99,27 @@ Playbook:
 
 - Manifest contract: `docs/corpus-manifest-contract.md`
 - Generate manifest JSON: `python scripts/generate_corpus_manifest.py`
-- Dry-run validation (duplicates, empty extract, size warnings): `python scripts/validate_corpus.py`
+- Dry-run validation (duplicates, empty extract, frontmatter gate, secrets): `python scripts/validate_corpus.py` (see `--gate-root`, `--no-gate`)
+- Ingestion/curation architecture (components + workflows): `docs/ingestion-and-curation-architecture.md`
 - Obsidian workflow: `docs/obsidian-vault-conventions.md`, `docs/obsidian-export-to-omnikb.md`
 
 ## User Documentation
 
 - Data curation pipeline strategy (governance, dedupe, chunking, migration): `docs/data-curation-pipeline.md`
+- **Ingestion and curation architecture (workflows, functions, gate):** `docs/ingestion-and-curation-architecture.md`
 - Content sidecars and non-text types: `docs/content-sidecars.md`
 - User and admin operations guide: `docs/user-operations-guide.md`
 - Developer setup and engineering workflow guide: `docs/developer-guide.md`
 - Testing framework and systematic coverage guide: `docs/testing-framework.md`
 - Performance profiling and continuous improvement guide: `docs/performance-profiling-and-continuous-improvement.md`
 - Security hardening guide: `docs/security-hardening-guide.md`
+- Vision summary (beyond naive RAG): `docs/vision-beyond-rag.md`
 - Planned layered knowledge architecture (raw/cache/dreaming/graph): `docs/layered-knowledge-architecture.md`
 - Layered architecture implementation roadmap (phases, API drafts, test criteria): `docs/implementation-roadmap-layered-architecture.md`
 - System architecture diagram (Graphviz DOT): `docs/architecture-graphviz.md`
 - Incident and troubleshooting evidence log: `devtools/error-tracking-db.md`
 - Internal React/browser DevTools debugging guide: `docs/internal-react-devtools-debugging-guide.md`
+- Docker Desktop / WSL2 resource allocation (internal): `docs/internal/docker-desktop-wsl2-resources.md` — Excel model via `python scripts/generate_docker_resource_model.py` → `internal_docs/docker-resource-budget-model.xlsx`
 
 ## React Web App
 

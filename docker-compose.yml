@@ -22,11 +22,16 @@ services:
       - .env
     environment:
       QDRANT_URL: http://qdrant:6333
+      # Override the env_file value so the container always sees its own bind-mount path,
+      # not the host-relative path used by Docker Compose for the volume declaration.
+      DATA_SOURCES_PATH: /data/sources
+      HOST_DATA_SOURCES_PATH: ${HOST_DATA_SOURCES_PATH:-}
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
       - ${DATA_SOURCES_PATH:-./data/sources}:/data/sources:ro
       - ${PROCESSED_DATA_PATH:-./data/processed}:/data/processed
+      - ${OMNIKB_LOGS_DIR:-./logs}:/app/logs
     depends_on:
       qdrant:
         condition: service_started

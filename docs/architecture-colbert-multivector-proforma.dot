@@ -1,0 +1,159 @@
+digraph VECTORDB_BRAIN_ColBERT_Proforma {
+  graph [
+    rankdir=TB;
+    splines=ortho;
+    compound=true;
+    fontsize=11;
+    fontname="Helvetica";
+    labelloc=t;
+    label="VECTORDB-BRAIN — pro-forma: episodic multi-layer memory with ColBERT multivector search (hypothetical)";
+  ];
+  node [fontname="Helvetica"; fontsize=10];
+  edge [fontname="Helvetica"; fontsize=9; color="#333333"];
+
+  /* ---------- Legend cluster ---------- */
+  subgraph cluster_legend {
+    label="Legend";
+    style=filled;
+    fillcolor="#FAFAFA";
+    color="#999999";
+
+    LegSync [label="Solid = sync / online path"; shape=plaintext];
+    LegAsync [label="Dashed = async / episodic consolidation"; shape=plaintext];
+    LegPro [label="Orange border = pro-forma (not implemented)"; shape=plaintext];
+  }
+
+  /* ---------- Layer 0 / 1 ---------- */
+  subgraph cluster_l1 {
+    label="Layer 0 / 1 — raw read-only corpus (evidence locker)";
+    style=filled;
+    fillcolor="#FFF3E0";
+    color="#E65100";
+
+    Sources [shape=cylinder; label="data/sources\n.md · .txt · .pdf\n(immutable RO)"; fillcolor="#FFE0B2"];
+    Chunker [label="Ingest pipeline\nchunk · normalize · hash"; fillcolor="#FFCC80"];
+    Manifest [shape=cylinder; label="Manifest / curation\n(provenance)"; fillcolor="#FFCC80"; style=dashed];
+  }
+
+  /* ---------- Indexing strategies (pro-forma fork) ---------- */
+  subgraph cluster_index_proforma {
+    label="Indexing strategies (pro-forma — pluggable adapters)";
+    style=filled;
+    fillcolor="#FFF8E1";
+    color="#F9A825";
+
+    DenseIdx [shape=cylinder; label="Dense index\n(single vector / chunk)\n[current: MiniLM + Qdrant]"; fillcolor="#C8E6C9"];
+    ColBERTIdx [shape=cylinder; label="ColBERT multivector index\n(token vectors / chunk)\nMaxSim-ready store"; fillcolor="#FFE082"; color="#E65100"; penwidth=2];
+    DualWrite [label="Index orchestrator\ndual-write or policy flag"; fillcolor="#FFECB3"; color="#E65100"; penwidth=2];
+  }
+
+  /* ---------- ColBERT search path ---------- */
+  subgraph cluster_colbert_search {
+    label="Search with ColBERT multivectors (pro-forma online path)";
+    style=filled;
+    fillcolor="#E8F5E9";
+    color="#2E7D32";
+
+    User [shape=ellipse; label="User / agent"; fillcolor="#FFF8DC"];
+    UI [label="VECTORDB-BRAIN UI\nor API client"; fillcolor="#DAE8FC"];
+    API [label="Query API\nlayer flags · filters"; fillcolor="#C8E6C9"];
+
+    QEncode [label="ColBERT query encoder\nq → multivectors q₁…qₘ"; fillcolor="#A5D6A7"; color="#1B5E20"; penwidth=2];
+    MaxSim [label="Late interaction scorer\nMaxSim(q, doc token vectors)"; fillcolor="#A5D6A7"; color="#1B5E20"; penwidth=2];
+    Rerank [label="Optional fusion\nColBERT ⊕ dense ⊕ filters"; fillcolor="#81C784"; style=dashed; color="#1B5E20"; penwidth=2];
+    Hits [label="Ranked chunk hits\n+ scores · provenance"; fillcolor="#C8E6C9"];
+  }
+
+  /* ---------- Layer 2 episodic ---------- */
+  subgraph cluster_l2 {
+    label="Layer 2 — episodic session memory (read/write during session)";
+    style=filled;
+    fillcolor="#E3F2FD";
+    color="#1565C0";
+
+    SessionLog [shape=cylinder; label="Episodic trace\nqueries · clicks · ColBERT hit sets"; fillcolor="#BBDEFB"];
+    SessionCache [shape=cylinder; label="Session rerank cache\n(query_id → top-k token maps)"; fillcolor="#90CAF9"; style=dashed];
+    Promoted [shape=cylinder; label="Promoted artifacts\n(read-only after close)"; fillcolor="#64B5F6"; style=dashed];
+  }
+
+  /* ---------- Reactive / logical processing ---------- */
+  subgraph cluster_reactive {
+    label="Reactive logical processing (query-time)";
+    style=filled;
+    fillcolor="#F3E5F5";
+    color="#6A1B9A";
+
+    Reactive [label="Reactive orchestrator\ninterpret intent · select strategy"; fillcolor="#E1BEE7"];
+    Strategy [shape=diamond; label="Retrieval policy?\nColBERT | dense | hybrid"; fillcolor="#CE93D8"; color="#6A1B9A"; penwidth=2];
+  }
+
+  /* ---------- Layer 3 + dreaming ---------- */
+  subgraph cluster_l3 {
+    label="Layer 3 — durable graph & aggregates (post-episodic)";
+    style=filled;
+    fillcolor="#ECEFF1";
+    color="#455A64";
+
+    L3Graph [shape=cylinder; label="Relationship graph\nedges · consistency scores"; fillcolor="#CFD8DC"];
+    Agg [shape=cylinder; label="Materialized views\n(theme · entity rollups)"; fillcolor="#B0BEC5"];
+    Audit [shape=cylinder; label="Audit trail\nscore_model · colbert_v"; fillcolor="#90A4AE"; fontcolor=white];
+  }
+
+  subgraph cluster_dream {
+    label="Dreaming / consolidation (async)";
+    style=filled;
+    fillcolor="#FCE4EC";
+    color="#AD1457";
+
+    SessionEnd [shape=diamond; label="Session finalize"; fillcolor="#F8BBD9"];
+    Dream [label="Sandman / reconciler\ncompare L1 vs L2 traces"; fillcolor="#F48FB1"; style=dashed];
+    ColBERTSim [label="ColBERT pairwise\nchunk↔chunk MaxSim\n(edge proposals)"; fillcolor="#F06292"; style=dashed; color="#AD1457"; penwidth=2];
+  }
+
+  /* ---------- Flows: ingest ---------- */
+  Sources -> Chunker [label="read"];
+  Manifest -> Chunker [style=dashed; label="govern"];
+  Chunker -> DualWrite [label="chunks"];
+  DualWrite -> DenseIdx [label="embed once\n[current]"];
+  DualWrite -> ColBERTIdx [label="token multivectors\n[pro-forma]"; color="#E65100"; penwidth=2];
+
+  /* ---------- Flows: query ---------- */
+  User -> UI;
+  UI -> API;
+  API -> Reactive [label="POST /query"];
+  Reactive -> Strategy;
+  Strategy -> QEncode [label="ColBERT path"; color="#1B5E20"; penwidth=2];
+  Strategy -> DenseIdx [label="dense path\n[fallback]"; style=dashed];
+  QEncode -> MaxSim;
+  ColBERTIdx -> MaxSim [label="retrieve candidates"];
+  MaxSim -> Rerank;
+  DenseIdx -> Rerank [style=dashed; label="dense top-k"];
+  Rerank -> Hits;
+  Hits -> API;
+  API -> UI;
+
+  /* ---------- Episodic write-back ---------- */
+  Hits -> SessionLog [style=dashed; color="#1565C0"; label="append trace"];
+  QEncode -> SessionCache [style=dashed; color="#1565C0"; label="cache query reps"];
+  Reactive -> SessionLog [style=dashed; label="policy · filters"];
+
+  /* ---------- Layer 3 read at query time ---------- */
+  Hits -> Agg [style=dashed; color="#455A64"; label="boost / explain\n(planned)"];
+  Agg -> L3Graph [style=dashed];
+  API -> Agg [style=dashed; label="drill-down\n(planned)"];
+
+  /* ---------- Dreaming ---------- */
+  UI -> SessionEnd [style=dashed; label="idle / close"];
+  SessionEnd -> Dream [style=dashed];
+  SessionLog -> Dream [style=dashed];
+  ColBERTIdx -> ColBERTSim [style=dashed; color="#AD1457"; penwidth=2];
+  Chunker -> Dream [style=dashed; label="L1 metadata"];
+  ColBERTSim -> L3Graph [style=dashed; label="propose edges"];
+  Dream -> L3Graph [style=dashed; label="merge scores"];
+  Dream -> Audit [style=dashed];
+  Promoted -> Dream [style=dashed; label="L2 durable"];
+
+  /* ---------- Rank hints ---------- */
+  { rank=same; DenseIdx; ColBERTIdx; }
+  { rank=same; QEncode; MaxSim; Rerank; }
+}

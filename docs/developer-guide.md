@@ -7,13 +7,15 @@ Use this together with:
 - `README.md` for quick start and command references.
 - `docs/user-operations-guide.md` for operator workflows.
 - `docs/data-curation-pipeline.md` for canonical data governance and ingest policy.
+- `docs/ingestion-and-curation-architecture.md` for **implemented** ingest validation workflows and function map.
 - `docs/benchmarking-playbook.md` for chunking benchmark procedures.
 
 ## 1) What Exists Today
 
 - Backend: FastAPI API in `src/omnikb/api`, service layer in `src/omnikb/services`, adapters in `src/omnikb/adapters`.
 - Vector storage: Qdrant via `src/omnikb/adapters/qdrant_store.py`.
-- Ingestion: `.md`, `.txt`, `.pdf` ingestion/chunk/embed pipeline via `src/omnikb/services/ingestion_service.py`.
+- Ingestion: `.md`, `.txt`, `.pdf` via `ingestion_service.py` with **curation hard gate** (`validate_corpus`, `CurationGateError` → HTTP 422).
+- Curation package: `src/omnikb/curation/` (`validate_frontmatter`, `parse_frontmatter`, CLI mirror in `scripts/validate_corpus.py`).
 - Query path: HTTP route `POST /query` in `src/omnikb/api/routes.py` calling `QueryService`.
 - Frontend: React UI in `web/src/App.tsx`.
 - Smoke evidence: `devtools/playwright-smoke.mjs` appends incidents to `devtools/error-tracking-db.md`.
@@ -80,9 +82,21 @@ For benchmark interpretation, see `docs/benchmarking-playbook.md`.
 
 ### Current boundary model
 
-- `data/sources` is treated as the source corpus (mounted read-only in Docker compose).
-- Qdrant stores chunk payloads and vectors.
+- `data/sources` is the source corpus (mounted read-only in Docker compose). Production notes should live under **`data/sources/curated/`** when the gate is enabled.
+- Qdrant stores chunk payloads and vectors (Layer 1 today).
 - `data/processed` holds generated local artifacts (benchmarks, manifests, validation outputs).
+
+### Curation gate (implemented)
+
+| Setting | Env var |
+|---------|---------|
+| Enable gate | `CURATION_GATE_ENABLED` |
+| Gated folders | `CURATION_GATE_ROOTS` (comma-separated) |
+| Override allowed | `CURATION_ALLOW_OVERRIDE` |
+
+API: `POST /curation/validate`, ingest bodies accept `allow_quality_override`.
+
+See [ingestion-and-curation-architecture.md](ingestion-and-curation-architecture.md) for sequence diagrams and function names.
 
 ### Planned layering (documented architecture only)
 

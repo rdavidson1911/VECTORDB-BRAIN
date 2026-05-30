@@ -7,9 +7,24 @@ For **why** we curate data, identity and dedupe rules, chunk policy vs benchmark
 ### Curation automation (local)
 
 - Generate a corpus manifest (paths, sizes, mtimes, content hashes): `python scripts/generate_corpus_manifest.py`
-- Validate a tree before ingest (dry-run): `python scripts/validate_corpus.py --root data/sources`
-- Chunk benchmarks with options: `python scripts/benchmark_chunking.py --help`
-- Obsidian staging conventions: [obsidian-export-to-omnikb.md](obsidian-export-to-omnikb.md)
+- Validate before ingest (dry-run, same rules as API gate):
+  - `python scripts/validate_corpus.py --root data/sources/curated`
+  - `Invoke-RestMethod -Method Post -Uri http://localhost:8000/curation/validate -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
+- Chunk benchmarks: `python scripts/benchmark_chunking.py --help`
+- Obsidian + Template 2.0.0: [obsidian-export-to-omnikb.md](obsidian-export-to-omnikb.md), [../obsidian_vault/Template-2.0.0-Usage-Guide.md](../obsidian_vault/Template-2.0.0-Usage-Guide.md)
+- Architecture (functions, workflows, file types): [ingestion-and-curation-architecture.md](ingestion-and-curation-architecture.md)
+
+### Curation environment variables
+
+Set in `.env` (see `.env.example`):
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CURATION_GATE_ENABLED` | `true` | Block ingest when validation reports **errors** |
+| `CURATION_GATE_ROOTS` | `curated` | Comma-separated subfolders under `data/sources` (e.g. `curated,staging` if you extend policy) |
+| `CURATION_ALLOW_OVERRIDE` | `false` | When `true`, ingest may pass `"allow_quality_override": true` to bypass the gate (logged use only) |
+
+Restart the API container after changing these values.
 
 ## 1) Before You Start
 
@@ -53,14 +68,24 @@ Current supported source types:
 
 ### Where to place files
 
-Default ingest path:
+Recommended layout:
 
-- `data/sources`
+| Folder | Gate applies? | Notes |
+|--------|---------------|--------|
+| `data/sources/curated/` | Yes | Template 2.0.0 frontmatter required for `.md` |
+| `data/sources/staging/` | No | Export from Obsidian before promotion |
+| `data/sources/` (root) | No | Samples and legacy files |
+| `data/sources/_samples/` | Exempt | Tracked smoke/evidence files |
+
+Default production ingest path inside the container:
+
+- `/data/sources/curated`
 
 Example:
 
 ```powershell
-Copy-Item .\my-notes\* .\data\sources\ -Recurse
+Copy-Item .\my-approved-notes\* .\data\sources\curated\ -Recurse
+python scripts/validate_corpus.py --root data/sources/curated
 ```
 
 ## 3) Ingest Files into the Vector Database
@@ -77,8 +102,28 @@ Copy-Item .\my-notes\* .\data\sources\ -Recurse
 
 ### Option B: API command
 
+Validate first (recommended for `curated/`):
+
 ```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:8000/ingest/path -ContentType application/json -Body '{"path":"/data/sources","recursive":true,"skip_unchanged":false}'
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/curation/validate `
+  -ContentType application/json `
+  -Body '{"path":"/data/sources/curated","recursive":true}'
+```
+
+Ingest:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/ingest/path `
+  -ContentType application/json `
+  -Body '{"path":"/data/sources/curated","recursive":true,"skip_unchanged":false}'
+```
+
+If ingest returns **422** with `curation_gate_failed`, fix files listed in `issues` (or use override only when `CURATION_ALLOW_OVERRIDE=true`):
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:8000/ingest/path `
+  -ContentType application/json `
+  -Body '{"path":"/data/sources/curated","recursive":true,"allow_quality_override":true}'
 ```
 
 ### Preview chunking before ingest (recommended)
@@ -234,6 +279,18 @@ Fix:
    - `powershell -ExecutionPolicy Bypass -File devtools/cors-repl.ps1`
 3. Confirm preflight returns `200` and includes `Access-Control-Allow-Origin`.
 
+### Problem: Ingest returns 422 curation_gate_failed
+
+Checklist:
+
+1. Read `detail.issues` in the response (or run `POST /curation/validate` / `validate_corpus.py`).
+2. For `.md` under `curated/`: ensure Template 2.0.0 fields (`kb_ingest`, `note_finalized`, `kb_status: curated`, etc.).
+3. Fix `empty_content` (PDF extract failed or body empty after frontmatter strip).
+4. Remove secrets flagged by `secret_pattern`.
+5. Do not use `allow_quality_override` unless policy allows it (`CURATION_ALLOW_OVERRIDE=true`).
+
+See [ingestion-and-curation-architecture.md](ingestion-and-curation-architecture.md) for issue codes and call flow.
+
 ### Problem: Query returns no results
 
 Checklist:
@@ -266,8 +323,9 @@ Checklist:
 
 Governance and lifecycle context for this workflow: [data-curation-pipeline.md](data-curation-pipeline.md).
 
-1. Add/update files in `data/sources`.
-2. Run ingest.
+1. Add/update files in `data/sources/curated` (or your gated tree).
+2. Run `validate_corpus.py` or `POST /curation/validate`.
+3. Run ingest (`skip_unchanged` after first full index to save embed cost).
 3. Run 2-3 representative searches.
 4. Review corpus dashboards.
 5. Run smoke scripts before major demos/releases.

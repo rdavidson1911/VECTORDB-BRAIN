@@ -36,12 +36,40 @@ class _FakeStore:
 
 class _FakeIngestionService:
     last_ingest_call: dict | None = None
+    last_ingest_file_call: dict | None = None
 
-    def ingest_path(self, path: str, recursive: bool = True, skip_unchanged: bool = False):  # noqa: ANN001
+    def ingest_file(
+        self, path: str, skip_unchanged: bool = False, allow_quality_override: bool = False
+    ):  # noqa: ANN001
+        _FakeIngestionService.last_ingest_file_call = {
+            "path": path,
+            "skip_unchanged": skip_unchanged,
+            "allow_quality_override": allow_quality_override,
+        }
+        return type(
+            "Result",
+            (),
+            {
+                "files_seen": 1,
+                "files_indexed": 1,
+                "chunks_indexed": 2,
+                "files_skipped": 0,
+                "resolved_path": "/data/sources/one.md",
+            },
+        )()
+
+    def ingest_path(
+        self,
+        path: str,
+        recursive: bool = True,
+        skip_unchanged: bool = False,
+        allow_quality_override: bool = False,
+    ):  # noqa: ANN001
         _FakeIngestionService.last_ingest_call = {
             "path": path,
             "recursive": recursive,
             "skip_unchanged": skip_unchanged,
+            "allow_quality_override": allow_quality_override,
         }
         return type(
             "Result",
@@ -60,6 +88,9 @@ class _FakeIngestionService:
             }
             for f in files
         ]
+
+    def _resolve_user_path(self, path: str) -> Path:
+        return Path(path)
 
     def preview_path(self, path: str, recursive: bool = True, limit_files: int = 10) -> list[dict]:
         return self.build_previews_for_files([path])
@@ -171,6 +202,26 @@ def test_cors_preflight_for_query_endpoint() -> None:
     app.dependency_overrides.clear()
 
 
+def test_ingest_file_endpoint() -> None:
+    app.dependency_overrides[get_app_state] = _override_state
+    client = TestClient(app)
+    _FakeIngestionService.last_ingest_file_call = None
+    res = client.post(
+        "/ingest/file",
+        json={"path": "/data/sources/one.md", "skip_unchanged": False},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["files_indexed"] == 1
+    assert body["resolved_path"] == "/data/sources/one.md"
+    assert _FakeIngestionService.last_ingest_file_call == {
+        "path": "/data/sources/one.md",
+        "skip_unchanged": False,
+        "allow_quality_override": False,
+    }
+    app.dependency_overrides.clear()
+
+
 def test_ingest_path_passes_skip_unchanged_flag() -> None:
     app.dependency_overrides[get_app_state] = _override_state
     client = TestClient(app)
@@ -186,6 +237,7 @@ def test_ingest_path_passes_skip_unchanged_flag() -> None:
         "path": "/data/sources",
         "recursive": True,
         "skip_unchanged": True,
+        "allow_quality_override": False,
     }
     app.dependency_overrides.clear()
 

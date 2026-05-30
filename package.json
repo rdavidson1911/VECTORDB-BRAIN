@@ -1,7 +1,7 @@
 {
   "name": "omnikb-repo",
   "private": true,
-  "description": "Root npm scripts delegate to web/ (package.json lives in web/).",
+  "description": "VECTORDB-BRAIN — root scripts delegate to vectordb-brain-web (web/).",
   "scripts": {
     "smoke:playwright": "npm --prefix web run smoke:playwright",
     "web:install": "npm --prefix web install",

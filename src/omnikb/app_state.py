@@ -4,7 +4,9 @@ from dataclasses import dataclass
 
 from omnikb.adapters.embedder import SentenceTransformerEmbedder
 from omnikb.adapters.qdrant_store import QdrantStore
+from omnikb.config.host_paths import canonical_data_sources_path, resolve_host_sources_root
 from omnikb.config.settings import Settings, get_settings
+from omnikb.curation.validate import CurationPolicy
 from omnikb.services.ingestion_service import IngestionService
 from omnikb.services.query_service import QueryService
 
@@ -19,6 +21,7 @@ class AppState:
 
 def build_state() -> AppState:
     settings = get_settings()
+    data_sources_path = canonical_data_sources_path(settings.data_sources_path)
     store = QdrantStore(
         url=settings.qdrant_url,
         collection=settings.qdrant_collection,
@@ -37,6 +40,16 @@ def build_state() -> AppState:
             embedding_model=settings.embedding_model,
             pipeline_version=settings.pipeline_version,
             normalization_profile=settings.normalization_profile,
+            data_sources_path=data_sources_path,
+            host_data_sources_path=resolve_host_sources_root(
+                settings.host_data_sources_path,
+                data_sources_path,
+            ),
+            curation_policy=CurationPolicy(
+                gate_enabled=settings.curation_gate_enabled,
+                gate_roots=list(settings.curation_gate_roots),
+            ),
+            curation_allow_override=settings.curation_allow_override,
         ),
         query_service=QueryService(store=store, embedder=embedder),
     )

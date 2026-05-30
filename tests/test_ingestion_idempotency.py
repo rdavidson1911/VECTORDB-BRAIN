@@ -39,6 +39,7 @@ def test_ingest_path_replaces_existing_source_vectors(tmp_path: Path) -> None:
         embedder=FakeEmbedder(),  # type: ignore[arg-type]
         chunk_size=16,
         chunk_overlap=2,
+        data_sources_path=str(tmp_path),
     )
 
     first = svc.ingest_path(str(doc_path), recursive=False)

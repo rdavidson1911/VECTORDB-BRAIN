@@ -9,6 +9,15 @@ class IngestPathRequest(BaseModel):
     path: str
     recursive: bool = True
     skip_unchanged: bool = False
+    allow_quality_override: bool = False
+
+
+class IngestFileRequest(BaseModel):
+    """Single-file ingest; path is sanitized and confined to the sources root."""
+
+    path: str = Field(min_length=1, max_length=4096)
+    skip_unchanged: bool = False
+    allow_quality_override: bool = False
 
 
 class IngestPreviewRequest(BaseModel):
@@ -44,6 +53,7 @@ class IngestPathResponse(BaseModel):
     files_indexed: int
     chunks_indexed: int
     files_skipped: int = 0
+    resolved_path: str | None = None
 
 
 class SourceSummary(BaseModel):
@@ -100,3 +110,37 @@ class ChunkPreview(BaseModel):
 class IngestPreviewResponse(BaseModel):
     files_seen: int
     previews: list[ChunkPreview]
+
+
+class CurationValidateRequest(BaseModel):
+    path: str
+    recursive: bool = True
+
+
+class CurationIssueOut(BaseModel):
+    severity: str
+    code: str
+    message: str
+    path: str | None = None
+
+
+class CurationValidateResponse(BaseModel):
+    entries_scanned: int
+    error_count: int
+    warn_count: int
+    issues: list[CurationIssueOut]
+
+
+class UiLogEntry(BaseModel):
+    ts: str
+    level: Literal["debug", "info", "warn", "error"] = "info"
+    category: Literal["ui", "api", "perf", "system"] = "ui"
+    event: str
+    message: str
+    duration_ms: float | None = None
+    correlation_id: str | None = None
+    meta: dict[str, str | int | float | bool | None] = Field(default_factory=dict)
+
+
+class UiLogBatch(BaseModel):
+    entries: list[UiLogEntry] = Field(default_factory=list, max_length=200)

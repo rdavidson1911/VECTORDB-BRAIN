@@ -170,7 +170,11 @@ Defined in [`chunking.py`](../src/omnikb/domain/chunking.py):
 | `python scripts/validate_corpus.py` | Dry-run validation: unsupported files, empty extract, large files, duplicate `content_hash`; optional `--json-out`. |
 | `python scripts/benchmark_chunking.py` | Chunk benchmarks; supports `--source-dir`, `--limit-files`, `--dated-copy`, `--output-name` (see [benchmarking-playbook.md](benchmarking-playbook.md)). |
 
-Ingest API: `POST /ingest/path` accepts `skip_unchanged` (boolean) to avoid re-embedding when stored points already match the current pipeline fingerprint (embedding model, chunk strategy/size/overlap, pipeline version, normalization profile, and content hash).
+Ingest API: `POST /ingest/path` accepts `skip_unchanged` (boolean) and `allow_quality_override` (boolean). **`POST /curation/validate`** runs the same checks without writing to Qdrant.
+
+**Hard gate (implemented):** When `CURATION_GATE_ENABLED` is true, `IngestionService` calls `validate_corpus` / `validate_ingest_files` and `assert_curation_gate` before embedding. Failures raise `CurationGateError` → HTTP 422. Override requires `CURATION_ALLOW_OVERRIDE=true` and `allow_quality_override` on the request.
+
+Details: [ingestion-and-curation-architecture.md](ingestion-and-curation-architecture.md).
 
 ---
 
@@ -180,6 +184,7 @@ Ingest API: `POST /ingest/path` accepts `skip_unchanged` (boolean) to avoid re-e
 |------|--------|---------|
 | **User / operator** | [user-operations-guide.md](user-operations-guide.md) | Day-to-day ingest, search, troubleshooting. |
 | **Strategy (this doc)** | [data-curation-pipeline.md](data-curation-pipeline.md) | Governance, identity, lifecycle, migration, backlog. |
+| **Ingest + validation (implemented)** | [ingestion-and-curation-architecture.md](ingestion-and-curation-architecture.md) | Components, events, function map, 422 gate. |
 | **Benchmarks** | [benchmarking-playbook.md](benchmarking-playbook.md), `scripts/benchmark_chunking.py` | Measurable chunking decisions. |
 | **Evidence / samples** | [sample-data-evidence.md](sample-data-evidence.md) | Reproducible validation. |
 | **Product vision / history** | [PROJECT-CHARTER.md](../PROJECT-CHARTER.md) | North star; may predate naming (“OmniStore” vs OmniKB). |
@@ -196,7 +201,7 @@ Ingest API: `POST /ingest/path` accepts `skip_unchanged` (boolean) to avoid re-e
 
 ## 9) Engineering backlog (from strategy to code)
 
-**Implemented in repo (partial):** corpus manifest generator + contract (`scripts/generate_corpus_manifest.py`, [corpus-manifest-contract.md](corpus-manifest-contract.md)), dry-run validator (`scripts/validate_corpus.py`), extended chunk benchmark CLI, filesystem `mtime`/size on `SourceDocument` and ingestion payload, pipeline/version fields on points, `skip_unchanged` on `POST /ingest/path`, Obsidian workflow docs, CI workflow (`.github/workflows/ci.yml`). Remaining items below.
+**Implemented in repo (partial):** corpus manifest generator + contract, dry-run validator with **frontmatter gate**, extended chunk benchmark CLI, filesystem `mtime`/size on payload, pipeline/version fields, `skip_unchanged`, **ingest hard gate** + `/curation/validate`, Obsidian workflow docs, CI workflow. Remaining items below.
 
 Prioritized ideas aligned with gaps above:
 

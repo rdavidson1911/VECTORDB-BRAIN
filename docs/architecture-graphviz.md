@@ -2,7 +2,9 @@
 
 This page provides **Graphviz DOT source** for system architecture: today’s runtime plus the **planned three-layer model** (Layer 1 raw read-only, Layer 2 session read-write, Layer 3 persistent relationship/consistency graph), **Sandman LLM** orchestrating post-session “dreaming,” human-in-the-loop validation, and drill-down audit trails.
 
-For narrative detail see [layered-knowledge-architecture.md](layered-knowledge-architecture.md) and [implementation-roadmap-layered-architecture.md](implementation-roadmap-layered-architecture.md).
+For narrative detail see [layered-knowledge-architecture.md](layered-knowledge-architecture.md), [implementation-roadmap-layered-architecture.md](implementation-roadmap-layered-architecture.md), and **today’s ingest/curation path** in [ingestion-and-curation-architecture.md](ingestion-and-curation-architecture.md).
+
+**Pro-forma (hypothetical):** ColBERT multivector search in the episodic multi-layer flow — [architecture-colbert-multivector-proforma.md](architecture-colbert-multivector-proforma.md) and [architecture-colbert-multivector-proforma.dot](architecture-colbert-multivector-proforma.dot).
 
 ## Conceptual anchor (1945)
 

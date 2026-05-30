@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from omnikb.adapters.document_loader import discover_files
 from omnikb.api.schemas import (
     ChunkPreview,
     CorpusSummaryResponse,
+    CurationIssueOut,
+    CurationValidateRequest,
+    CurationValidateResponse,
     HealthResponse,
+    IngestFileRequest,
     IngestPathRequest,
     IngestPathResponse,
     IngestPreviewRequest,
@@ -16,8 +22,18 @@ from omnikb.api.schemas import (
     QueryResponse,
     SearchAnalytics,
     SourceSummary,
+    UiLogBatch,
 )
 from omnikb.app_state import AppState, get_app_state
+from omnikb.curation.exceptions import CurationGateError
+from omnikb.curation.validate import (
+    curation_errors,
+    report_to_dict,
+    validate_corpus,
+    validate_ingest_files,
+)
+from omnikb.domain.path_safety import UnsafePathError
+from omnikb.infra.file_log_writer import append_jsonl
 
 router = APIRouter()
 
@@ -32,6 +48,53 @@ def health(state: AppState = Depends(get_app_state)) -> HealthResponse:
     )
 
 
+def _raise_ingest_error(exc: Exception) -> None:
+    if isinstance(exc, CurationGateError):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "curation_gate_failed",
+                "issues": [
+                    {
+                        "severity": i.severity,
+                        "code": i.code,
+                        "message": i.message,
+                        "path": i.path,
+                    }
+                    for i in exc.issues
+                ],
+            },
+        ) from exc
+    if isinstance(exc, UnsafePathError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if isinstance(exc, FileNotFoundError):
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    if isinstance(exc, ValueError):
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    raise exc
+
+
+@router.post("/ingest/file")
+def ingest_file(
+    payload: IngestFileRequest, state: AppState = Depends(get_app_state)
+) -> IngestPathResponse:
+    try:
+        result = state.ingestion_service.ingest_file(
+            payload.path,
+            skip_unchanged=payload.skip_unchanged,
+            allow_quality_override=payload.allow_quality_override,
+        )
+    except (UnsafePathError, FileNotFoundError, ValueError, CurationGateError) as exc:
+        _raise_ingest_error(exc)
+    return IngestPathResponse(
+        files_seen=result.files_seen,
+        files_indexed=result.files_indexed,
+        chunks_indexed=result.chunks_indexed,
+        files_skipped=result.files_skipped,
+        resolved_path=result.resolved_path,
+    )
+
+
 @router.post("/ingest/path")
 def ingest_path(
     payload: IngestPathRequest, state: AppState = Depends(get_app_state)
@@ -41,9 +104,10 @@ def ingest_path(
             payload.path,
             recursive=payload.recursive,
             skip_unchanged=payload.skip_unchanged,
+            allow_quality_override=payload.allow_quality_override,
         )
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (UnsafePathError, FileNotFoundError, ValueError, CurationGateError) as exc:
+        _raise_ingest_error(exc)
     return IngestPathResponse(
         files_seen=result.files_seen,
         files_indexed=result.files_indexed,
@@ -111,10 +175,48 @@ def ingest_preview(
     payload: IngestPreviewRequest, state: AppState = Depends(get_app_state)
 ) -> IngestPreviewResponse:
     try:
-        files = discover_files(payload.path, recursive=payload.recursive)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        resolved = state.ingestion_service._resolve_user_path(payload.path)
+        files = discover_files(str(resolved), recursive=payload.recursive)
+    except (UnsafePathError, FileNotFoundError, ValueError) as exc:
+        _raise_ingest_error(exc)
     files_seen = len(files)
     previews = state.ingestion_service.build_previews_for_files(files[: payload.limit_files])
     preview_models = [ChunkPreview(**item) for item in previews]
     return IngestPreviewResponse(files_seen=files_seen, previews=preview_models)
+
+
+@router.post("/curation/validate")
+def curation_validate(
+    payload: CurationValidateRequest, state: AppState = Depends(get_app_state)
+) -> CurationValidateResponse:
+    try:
+        resolved = state.ingestion_service._resolve_user_path(payload.path)
+    except (UnsafePathError, FileNotFoundError, ValueError) as exc:
+        _raise_ingest_error(exc)
+    policy = state.ingestion_service.curation_policy
+    corpus_root = Path(state.settings.data_sources_path)
+    if resolved.is_file():
+        report = validate_ingest_files([resolved], corpus_root=corpus_root, policy=policy)
+    else:
+        report = validate_corpus(
+            resolved,
+            recursive=payload.recursive,
+            policy=policy,
+        )
+    errors = curation_errors(report)
+    warns = [i for i in report.issues if i.severity == "warn"]
+    return CurationValidateResponse(
+        entries_scanned=report.entries_scanned,
+        error_count=len(errors),
+        warn_count=len(warns),
+        issues=[CurationIssueOut(**item) for item in report_to_dict(report)["issues"]],
+    )
+
+
+@router.post("/dev/ui-logs")
+def ingest_ui_logs(batch: UiLogBatch, state: AppState = Depends(get_app_state)) -> dict[str, int]:
+    if not state.settings.ui_logging_enabled:
+        raise HTTPException(status_code=404, detail="UI logging is disabled.")
+    for entry in batch.entries:
+        append_jsonl("ui-client", entry.model_dump())
+    return {"accepted": len(batch.entries)}

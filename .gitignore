@@ -6,6 +6,8 @@ __pycache__/
 .mypy_cache/
 src/*.egg-info/
 .env
+node_modules/
+**/node_modules/
 data/sources/*
 !data/sources/.gitkeep
 !data/sources/sample-note.md
@@ -32,3 +34,12 @@ data/processed/*
 internal_docs/
 devtools/*.har
 devtools/*.log
+
+# Runtime diagnostics (see logs/README.md)
+logs/*.jsonl
+logs/*.log
+!logs/.gitkeep
+!logs/README.md
+
+# My Personal Notes
+my-REMINDERS.md

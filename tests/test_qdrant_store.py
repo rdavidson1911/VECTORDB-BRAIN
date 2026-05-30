@@ -9,6 +9,11 @@ class _FakeClient:
         self.calls.append(points)
 
 
+def test_points_count_from_stats_prefers_points_count_over_none_vectors_count() -> None:
+    stats = {"vectors_count": None, "points_count": 42, "indexed_vectors_count": 40}
+    assert QdrantStore._points_count_from_stats(stats, fallback=0) == 42
+
+
 def test_upsert_batches_when_estimated_payload_would_exceed_limit() -> None:
     store = QdrantStore.__new__(QdrantStore)
     store.collection = "omnikb_documents"

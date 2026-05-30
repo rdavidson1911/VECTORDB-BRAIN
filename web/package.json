@@ -1,0 +1,40 @@
+{
+  "name": "vectordb-brain-web",
+  "private": true,
+  "description": "VECTORDB-BRAIN — reactive console for Layer 0 corpus ingest and semantic query.",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode development",
+    "dev:fresh": "node -e \"require('fs').rmSync('node_modules/.vite',{recursive:true,force:true})\" && vite --mode development",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "smoke:playwright": "node ../devtools/playwright-smoke.mjs"
+  },
+  "dependencies": {
+    "plotly.js-dist-min": "^3.5.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-plotly.js": "^2.6.0",
+    "react-router-dom": "^7.14.2",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.2",
+    "@types/plotly.js": "^3.0.10",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-plotly.js": "^2.6.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "playwright": "^1.59.1",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.10"
+  }
+}

@@ -12,7 +12,14 @@ from qdrant_client.models import FieldCondition, MatchValue
 from omnikb.adapters.document_loader import discover_files, load_document
 from omnikb.adapters.embedder import SentenceTransformerEmbedder
 from omnikb.adapters.qdrant_store import QdrantStore, VectorRecord
+from omnikb.curation.validate import (
+    CurationPolicy,
+    assert_curation_gate,
+    validate_corpus,
+    validate_ingest_files,
+)
 from omnikb.domain.chunking import ChunkingConfig, chunk_text
+from omnikb.domain.path_safety import assert_ingest_file_target, resolve_ingest_path
 
 
 @dataclass(slots=True)
@@ -21,6 +28,7 @@ class IngestionResult:
     files_indexed: int
     chunks_indexed: int
     files_skipped: int = 0
+    resolved_path: str | None = None
 
 
 class IngestionService:
@@ -35,6 +43,10 @@ class IngestionService:
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         pipeline_version: str = "0.1.0",
         normalization_profile: str = "utf8_ignore_pypdf_v1",
+        data_sources_path: str = "/data/sources",
+        host_data_sources_path: str | None = None,
+        curation_policy: CurationPolicy | None = None,
+        curation_allow_override: bool = False,
     ) -> None:
         self.store = store
         self.embedder = embedder
@@ -44,14 +56,59 @@ class IngestionService:
         self.embedding_model = embedding_model
         self.pipeline_version = pipeline_version
         self.normalization_profile = normalization_profile
+        self.data_sources_path = data_sources_path
+        self.host_data_sources_path = host_data_sources_path or None
+        self.curation_policy = curation_policy if curation_policy is not None else CurationPolicy()
+        self.curation_allow_override = curation_allow_override
         self.chunking_config = ChunkingConfig(
             strategy=chunk_strategy, chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
 
-    def ingest_path(
-        self, path: str, recursive: bool = True, *, skip_unchanged: bool = False
+    def _resolve_user_path(self, path: str) -> Path:
+        return resolve_ingest_path(
+            path,
+            allowed_root=Path(self.data_sources_path),
+            host_sources_root=self.host_data_sources_path,
+        )
+
+    def ingest_file(
+        self, path: str, *, skip_unchanged: bool = False, allow_quality_override: bool = False
     ) -> IngestionResult:
-        files = discover_files(path, recursive=recursive)
+        """Index a single file under the configured sources root."""
+        resolved = self._resolve_user_path(path)
+        assert_ingest_file_target(resolved)
+        self._run_curation_gate([resolved], allow_quality_override=allow_quality_override)
+        self.store.ensure_collection(self.embedder.dimensions)
+        outcome = self._ingest_single(resolved, skip_unchanged=skip_unchanged)
+        resolved_posix = resolved.as_posix()
+        if outcome == "skipped":
+            return IngestionResult(
+                files_seen=1,
+                files_indexed=0,
+                chunks_indexed=0,
+                files_skipped=1,
+                resolved_path=resolved_posix,
+            )
+        chunks = int(outcome) if isinstance(outcome, int) else 0
+        return IngestionResult(
+            files_seen=1,
+            files_indexed=1 if chunks > 0 else 0,
+            chunks_indexed=chunks,
+            files_skipped=0,
+            resolved_path=resolved_posix,
+        )
+
+    def ingest_path(
+        self,
+        path: str,
+        recursive: bool = True,
+        *,
+        skip_unchanged: bool = False,
+        allow_quality_override: bool = False,
+    ) -> IngestionResult:
+        resolved = self._resolve_user_path(path)
+        self._run_curation_gate_for_tree(resolved, recursive, allow_quality_override)
+        files = discover_files(str(resolved), recursive=recursive)
         total_chunks = 0
         indexed_files = 0
         skipped_files = 0
@@ -152,5 +209,46 @@ class IngestionService:
         return previews
 
     def preview_path(self, path: str, recursive: bool = True, limit_files: int = 10) -> list[dict]:
-        files = discover_files(path, recursive=recursive)
+        resolved = self._resolve_user_path(path)
+        files = discover_files(str(resolved), recursive=recursive)
         return self.build_previews_for_files(files[:limit_files])
+
+    def _corpus_root(self) -> Path:
+        return Path(self.data_sources_path)
+
+    def _run_curation_gate_for_tree(
+        self, scan_root: Path, recursive: bool, allow_quality_override: bool
+    ) -> None:
+        if not self.curation_policy.gate_enabled:
+            return
+        if scan_root.is_file():
+            report = validate_ingest_files(
+                [scan_root],
+                corpus_root=self._corpus_root(),
+                policy=self.curation_policy,
+            )
+        else:
+            report = validate_corpus(
+                scan_root,
+                recursive=recursive,
+                policy=self.curation_policy,
+            )
+        assert_curation_gate(
+            report,
+            allow_override=allow_quality_override,
+            override_enabled=self.curation_allow_override,
+        )
+
+    def _run_curation_gate(self, files: list[Path], *, allow_quality_override: bool) -> None:
+        if not self.curation_policy.gate_enabled:
+            return
+        report = validate_ingest_files(
+            files,
+            corpus_root=self._corpus_root(),
+            policy=self.curation_policy,
+        )
+        assert_curation_gate(
+            report,
+            allow_override=allow_quality_override,
+            override_enabled=self.curation_allow_override,
+        )
