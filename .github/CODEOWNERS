@@ -1,0 +1,3 @@
+# Default reviewers for pull requests (human maintainers).
+# Claude Code is not a GitHub user — use the Claude GitHub App + @claude in PR comments.
+* @rdavidson1911
