@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "plotly.js-dist-min": "^3.5.1",
-    "react": "^19.2.5",
+    "react": "^19.2.6",
     "react-dom": "^19.2.5",
     "react-plotly.js": "^2.6.0",
     "react-router-dom": "^7.14.2",
@@ -24,7 +24,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.2",
     "@types/plotly.js": "^3.0.10",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@types/react-plotly.js": "^2.6.4",
     "@vitejs/plugin-react": "^6.0.1",
