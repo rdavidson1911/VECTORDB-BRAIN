@@ -41,8 +41,11 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
+markers = [
+  "mailcatcher: integration tests; need MailCatcher SMTP + web UI on localhost",
+]
 
 [tool.ruff]
 line-length = 100

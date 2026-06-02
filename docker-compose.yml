@@ -41,3 +41,14 @@ services:
       timeout: 5s
       retries: 8
     restart: unless-stopped
+
+  # Local dev only: captures SMTP on 1025; web UI at http://127.0.0.1:1080
+  # Start with: docker compose --profile dev-mail up -d mailcatcher
+  mailcatcher:
+    image: schickling/mailcatcher:latest
+    container_name: omnikb-mailcatcher
+    profiles: [dev-mail]
+    ports:
+      - "127.0.0.1:${MAILCATCHER_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILCATCHER_WEB_PORT:-1081}:1080"
+    restart: unless-stopped

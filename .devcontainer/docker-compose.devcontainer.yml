@@ -1,0 +1,27 @@
+﻿version: "3.9"
+
+# Overlay on top of the main docker-compose.yml.
+# Adds a dedicated Qdrant instance for research/agent experiments (port 6334)
+# so no agent experiment can touch the production knowledge store.
+
+services:
+  api:
+    volumes:
+      - ..:/workspace:cached
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    command: sleep infinity   # keep container alive; start FastAPI manually
+
+  qdrant-research:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6334:6333"
+    volumes:
+      - qdrant_research_data:/qdrant/storage
+    environment:
+      - QDRANT__LOG_LEVEL=INFO
+    restart: unless-stopped
+
+volumes:
+  qdrant_research_data:

@@ -1,0 +1,365 @@
+Folder PATH listing for volume GAMING
+Volume serial number is E8B7-CFCB
+I:.
+¦   .gitkeep
+¦   raft_state.json
+¦
++---aliases
+¦       data.json
+¦
++---collections
+    +---omnikb_documents
+        ¦   config.json
+        ¦   version.info
+        ¦
+        +---0
+            ¦   applied_seq.json
+            ¦   newest_clocks.json
+            ¦   replica_state.json
+            ¦   shard_config.json
+            ¦
+            +---segments
+            ¦   +---027a04cf-de3f-4981-8b70-4366c760ca1f
+            ¦   ¦   ¦   000028.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000029
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000027
+            ¦   ¦   ¦   OPTIONS-000031
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---030a6d6f-7dbf-4fb0-bd03-5085b97a97e8
+            ¦   ¦   ¦   000028.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000029
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000027
+            ¦   ¦   ¦   OPTIONS-000031
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---25134d49-e5cf-46f5-a48d-577ab64b543f
+            ¦   ¦   ¦   000028.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000029
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000027
+            ¦   ¦   ¦   OPTIONS-000031
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---3462f4e6-df6b-401f-8ecb-da0687f4fd3f
+            ¦   ¦   ¦   000028.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000029
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000027
+            ¦   ¦   ¦   OPTIONS-000031
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---610abeb7-a76f-4365-8bf0-98da534dfac3
+            ¦   ¦   ¦   000028.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000029
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000027
+            ¦   ¦   ¦   OPTIONS-000031
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---89102ece-644f-4984-b559-41fdc6c4846a
+            ¦   ¦   ¦   000028.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000029
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000027
+            ¦   ¦   ¦   OPTIONS-000031
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---b0a12431-0b89-4bbf-862c-40f93f3e7771
+            ¦   ¦   ¦   000009.sst
+            ¦   ¦   ¦   000012.sst
+            ¦   ¦   ¦   000028.sst
+            ¦   ¦   ¦   000031.sst
+            ¦   ¦   ¦   000042.log
+            ¦   ¦   ¦   CURRENT
+            ¦   ¦   ¦   IDENTITY
+            ¦   ¦   ¦   LOCK
+            ¦   ¦   ¦   LOG
+            ¦   ¦   ¦   MANIFEST-000043
+            ¦   ¦   ¦   mutable_id_tracker.mappings
+            ¦   ¦   ¦   mutable_id_tracker.versions
+            ¦   ¦   ¦   OPTIONS-000041
+            ¦   ¦   ¦   OPTIONS-000045
+            ¦   ¦   ¦   segment.json
+            ¦   ¦   ¦   version.info
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_index
+            ¦   ¦   ¦       000024.log
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       CURRENT
+            ¦   ¦   ¦       IDENTITY
+            ¦   ¦   ¦       LOCK
+            ¦   ¦   ¦       LOG
+            ¦   ¦   ¦       MANIFEST-000025
+            ¦   ¦   ¦       OPTIONS-000023
+            ¦   ¦   ¦       OPTIONS-000027
+            ¦   ¦   ¦
+            ¦   ¦   +---payload_storage
+            ¦   ¦   ¦       bitmask.dat
+            ¦   ¦   ¦       config.json
+            ¦   ¦   ¦       gaps.dat
+            ¦   ¦   ¦       page_0.dat
+            ¦   ¦   ¦       tracker.dat
+            ¦   ¦   ¦
+            ¦   ¦   +---vector_storage
+            ¦   ¦       +---deleted
+            ¦   ¦       ¦       flags_a.dat
+            ¦   ¦       ¦       status.dat
+            ¦   ¦       ¦
+            ¦   ¦       +---vectors
+            ¦   ¦               chunk_0.mmap
+            ¦   ¦               config.json
+            ¦   ¦               status.dat
+            ¦   ¦
+            ¦   +---c0f7a798-bd26-4417-a7be-5ac3ab07b1d2
+            ¦       ¦   000039.log
+            ¦       ¦   CURRENT
+            ¦       ¦   IDENTITY
+            ¦       ¦   LOCK
+            ¦       ¦   LOG
+            ¦       ¦   MANIFEST-000040
+            ¦       ¦   mutable_id_tracker.mappings
+            ¦       ¦   mutable_id_tracker.versions
+            ¦       ¦   OPTIONS-000038
+            ¦       ¦   OPTIONS-000042
+            ¦       ¦   segment.json
+            ¦       ¦   version.info
+            ¦       ¦
+            ¦       +---payload_index
+            ¦       ¦       000024.log
+            ¦       ¦       config.json
+            ¦       ¦       CURRENT
+            ¦       ¦       IDENTITY
+            ¦       ¦       LOCK
+            ¦       ¦       LOG
+            ¦       ¦       MANIFEST-000025
+            ¦       ¦       OPTIONS-000023
+            ¦       ¦       OPTIONS-000027
+            ¦       ¦
+            ¦       +---payload_storage
+            ¦       ¦       bitmask.dat
+            ¦       ¦       config.json
+            ¦       ¦       gaps.dat
+            ¦       ¦       page_0.dat
+            ¦       ¦       tracker.dat
+            ¦       ¦
+            ¦       +---vector_storage
+            ¦           +---deleted
+            ¦           ¦       flags_a.dat
+            ¦           ¦       status.dat
+            ¦           ¦
+            ¦           +---vectors
+            ¦                   chunk_0.mmap
+            ¦                   config.json
+            ¦                   status.dat
+            ¦
+            +---wal
+                    first-index
+                    open-1
+                    open-2

@@ -43,3 +43,12 @@ logs/*.log
 
 # My Personal Notes
 my-REMINDERS.md
+
+# local tooling and personal vaults
+obsidian_vault/
+ollama/
+*.pdf
+
+# Agent orchestration — local only
+qdrant_research_data/
+docs/digests/digest-*.md
