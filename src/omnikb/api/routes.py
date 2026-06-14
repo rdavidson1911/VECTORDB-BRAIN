@@ -7,6 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from omnikb.adapters.document_loader import discover_files
 from omnikb.api.schemas import (
     ChunkPreview,
+    ConsolidationRunRequest,
+    ConsolidationRunResponse,
+    ConsolidationStatusResponse,
     CorpusSummaryResponse,
     CurationIssueOut,
     CurationValidateRequest,
@@ -25,6 +28,7 @@ from omnikb.api.schemas import (
     UiLogBatch,
 )
 from omnikb.app_state import AppState, get_app_state
+from omnikb.consolidation.trigger import ConsolidationBusyError, ConsolidationDisabledError
 from omnikb.curation.exceptions import CurationGateError
 from omnikb.curation.validate import (
     curation_errors,
@@ -210,6 +214,48 @@ def curation_validate(
         error_count=len(errors),
         warn_count=len(warns),
         issues=[CurationIssueOut(**item) for item in report_to_dict(report)["issues"]],
+    )
+
+
+@router.post("/consolidation/run", status_code=202)
+def consolidation_run(
+    payload: ConsolidationRunRequest, state: AppState = Depends(get_app_state)
+) -> ConsolidationRunResponse:
+    try:
+        job = state.consolidation_service.submit_run(
+            scope=payload.scope,
+            dry_run=payload.dry_run,
+            reason=payload.reason,
+        )
+    except ConsolidationDisabledError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except ConsolidationBusyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ConsolidationRunResponse(
+        job_id=job.job_id,
+        accepted_at=job.accepted_at,
+        status="accepted",
+    )
+
+
+@router.get("/consolidation/status/{job_id}")
+def consolidation_status(
+    job_id: str, state: AppState = Depends(get_app_state)
+) -> ConsolidationStatusResponse:
+    job = state.consolidation_service.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Unknown job_id: {job_id}")
+    return ConsolidationStatusResponse(
+        job_id=job.job_id,
+        accepted_at=job.accepted_at,
+        status=job.status,
+        scope=job.scope,
+        dry_run=job.dry_run,
+        reason=job.reason,
+        started_at=job.started_at,
+        finished_at=job.finished_at,
+        message=job.message,
+        error=job.error,
     )
 
 

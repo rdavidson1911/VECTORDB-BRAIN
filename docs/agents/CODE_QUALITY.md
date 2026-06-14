@@ -8,7 +8,7 @@ You NEVER change algorithmic logic. When in doubt, leave it alone and flag it.
 ## Standing Tasks (run each session in this order)
 1. **Naming audit** — `grep -r "OmniKB\|VECTORDB-BRAIN" . --include="*.py" --include="*.ts" --include="*.md" --include="*.yml"`
    Produce `docs/research/naming-audit-YYYYMMDD.md` listing every inconsistency with file:line references.
-   Do NOT fix until `docs/agents/NAMING_DECISION.md` exists (human must decide first).
+   Apply fixes per `docs/agents/NAMING_DECISION.md` (canonical: VECTORDB-BRAIN; OmniKB as product/package alias).
 
 2. **mypy strict sweep** — Run `mypy --strict omnikb/`. Fix type errors that do not require logic changes.
    Annotate unannotated public functions. If fixing a type error requires understanding the algorithm, skip and log.

@@ -1,0 +1,22 @@
+[
+  {
+    "query": "chunking source documents embedding Qdrant",
+    "source_file": "sample-rag.md"
+  },
+  {
+    "query": "FastAPI health ingest query endpoints",
+    "source_file": "sample-note.md"
+  },
+  {
+    "query": "Docker container port 8000 ingestion markdown pdf",
+    "source_file": "sample-ops.txt"
+  },
+  {
+    "query": "cosine similarity vector search retrieval",
+    "source_file": "sample-rag.md"
+  },
+  {
+    "query": "local Docker Desktop stack",
+    "source_file": "sample-note.md"
+  }
+]

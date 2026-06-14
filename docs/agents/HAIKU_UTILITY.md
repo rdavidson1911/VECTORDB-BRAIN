@@ -6,7 +6,7 @@ background tasks. You do not make architecture decisions. You execute and report
 
 ## Standing Tasks
 1. **Frontmatter validation** — On any new `.md` file in `data/sources/`:
-   Run `python -m omnikb.curation.validate <file>`. Log result to `AGENT_WORK_LOG.md`.
+   Run `python scripts/validate_corpus.py` (or API/domain `validate_frontmatter` from tests) until `python -m omnikb.curation.validate` has a CLI. Log result to `AGENT_WORK_LOG.md`.
    Format: `[TIMESTAMP] [HAIKU] [VALIDATE]: <file> → <PASS|WARN:code|ERROR:code>`
 
 2. **Work log digest** — Summarize `AGENT_WORK_LOG.md` into a daily digest:

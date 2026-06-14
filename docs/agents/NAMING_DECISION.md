@@ -7,7 +7,7 @@ _Date decided: 2026-06-02_
 
 ## Decision 1: Canonical Name
 **DECISION:** VECTORDB-BRAIN
-**Rationale:** (one sentence — e.g. "repo name is already public, OmniKB becomes internal package alias only")
+**Rationale:** The public GitHub repo and operator docs use VECTORDB-BRAIN; OmniKB remains the product name and Python package (`omnikb/`) without renaming the repository.
 
 ---
 
