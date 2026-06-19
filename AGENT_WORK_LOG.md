@@ -19,6 +19,12 @@ _(No open human decisions.)_
 
 ## Log
 
+[2026-06-19 12:00] [ORCHESTRATOR] [DISPATCH]: Cursor orchestrator resume session. Audited 9 worktrees under .claude/worktrees/; agent/* branches 0 commits ahead of main — deliverables on test/quality-review (+3 vs c4cb386). l2-schema-design-draft clean (Option C). Resume backlog: embedding bench BLOCKED; Qdrant migration review; L2 episodic stub; Haiku digest 2026-06-19.
+
+[2026-06-19 12:00] [ORCHESTRATOR] [DISPATCH]: Sub-agent status — Research BLOCKED (Docker bench); Code Quality/Qdrant/L2/L3 COMPLETE on integration branch; Haiku digest docs/digests/digest-2026-06-19.md.
+
+[2026-06-19 12:00] [HAIKU] [DIGEST]: docs/digests/digest-2026-06-19.md — orchestrator resume summary; 0 open HUMAN items; 1 BLOCKED (embedding numerics).
+
 [2026-06-04 19:15] [RESEARCH] [COMPLETE]: Workstreams 2–4 drafted in `docs/research/` (schema scenarios, consolidation ADR, L2→L3 protocol). Benchmark harness added under `docs/research/benchmarks/`.
 [2026-06-04 19:15] [RESEARCH] [BLOCKED]: Embedding numeric table — host ST import fails (torchcodec); full docker benchmark hung/slow (model download). Re-run via `docs/research/benchmarks/README.md` when Docker stable.
 [2026-06-04 19:15] [RESEARCH] [ESCALATE]: Consolidation ADR proposes explicit `POST /consolidation/run` — Orchestrator should accept/reject to unblock L2/L3 Agent (log item 2).

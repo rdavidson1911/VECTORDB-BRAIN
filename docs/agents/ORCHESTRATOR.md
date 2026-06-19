@@ -37,3 +37,13 @@ decision recorded in `docs/agents/NAMING_DECISION.md` (create this file when the
 - Read: `docs/research/qdrant-tuning.md` for Qdrant Agent outputs
 - Write: `AGENT_WORK_LOG.md` (append only — never rewrite history)
 - Signal to human: leave a `## HUMAN DECISION REQUIRED` section in the work log with a clear question
+
+## Session close (after sub-agents finish)
+
+1. Run quality gates from repo root (Poetry env):
+   `python -m ruff check src tests`, `python -m ruff format --check src tests`, `python -m mypy src`, `python -m bandit -c pyproject.toml -r src`, `python -m pytest`
+2. Merge integration branch to `main` only after gates green and human approval.
+3. Write `docs/agents/reports/ORCHESTRATION_SESSION_REPORT-YYYY-MM-DD.md` (template in `docs/agents/reports/README.md`).
+4. Teardown agent worktrees (dry-run first):
+   `.\scripts\Invoke-AgentWorktreeTeardown.ps1` then `.\scripts\Invoke-AgentWorktreeTeardown.ps1 -ForceRemove -DeleteMergedBranches`
+5. Append `[ORCHESTRATOR] [VALIDATE]` with commit SHA, pytest count, and teardown summary to `AGENT_WORK_LOG.md`.

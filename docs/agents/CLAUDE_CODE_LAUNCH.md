@@ -3,7 +3,8 @@
 Use this file when starting each sub-agent in **Claude Code → Agents Window**. Point each agent at its system prompt file and git worktree branch.
 
 **Orchestrator prompt:** `docs/agents/ORCHESTRATOR.md`
-**Integration branch:** `feature/agent-orchestration-system`
+**Integration branch:** `feature/agent-orchestration-system` (merge target: `main` after gates)
+**Session close:** `docs/agents/reports/README.md`, `scripts/Invoke-AgentWorktreeTeardown.ps1`
 **Quality gate before merge:** `make check` from repo root (or `python -m ruff check src tests`, `python -m mypy src`, `python -m pytest`)
 
 ---
@@ -106,6 +107,7 @@ Stay under cost budget; use COST-ALERT if needed.
 ## Orchestrator checklist (each review)
 
 1. `git diff` scoped to agent branch prefix
-2. `make check` green
+2. `make check` green (or `poetry run` equivalents in CLAUDE.md)
 3. Naming grep: public-facing docs use VECTORDB-BRAIN; OmniKB allowed as product alias per NAMING_DECISION.md
 4. Append review line to `AGENT_WORK_LOG.md`
+5. End of cycle: write `docs/agents/reports/ORCHESTRATION_SESSION_REPORT-YYYY-MM-DD.md`, run `.\scripts\Invoke-AgentWorktreeTeardown.ps1` then `-ForceRemove -AllowDirty -DeleteMergedBranches`
