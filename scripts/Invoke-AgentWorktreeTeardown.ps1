@@ -42,13 +42,18 @@ try {
     $current = @{}
     foreach ($line in $lines) {
         if ($line -eq '') {
-            if ($current.worktree) { $entries += [pscustomobject]$current; $current = @{} }
+            if ($current.ContainsKey('worktree') -and $current['worktree']) {
+                $entries += [pscustomobject]@{ worktree = $current['worktree']; branch = $current['branch'] }
+            }
+            $current = @{}
             continue
         }
-        if ($line -like 'worktree *') { $current.worktree = $line.Substring(9).Trim() }
-        elseif ($line -like 'branch *') { $current.branch = $line.Substring(7).Trim() }
+        if ($line -like 'worktree *') { $current['worktree'] = $line.Substring(9).Trim() }
+        elseif ($line -like 'branch *') { $current['branch'] = $line.Substring(7).Trim() }
     }
-    if ($current.worktree) { $entries += [pscustomobject]$current }
+    if ($current.ContainsKey('worktree') -and $current['worktree']) {
+        $entries += [pscustomobject]@{ worktree = $current['worktree']; branch = $current['branch'] }
+    }
 
     $targets = $entries | Where-Object {
         $_.worktree -replace '\\', '/' -like "$(($ProjectRoot -replace '\\', '/'))/.claude/worktrees/*"
@@ -67,29 +72,28 @@ try {
         Push-Location $path
         $dirty = (git status --porcelain)
         Pop-Location
-        if ($dirty) {
-            Write-Warning "Dirty tree: $path"
-            if ($whatIfMode) {
-                $flag = if ($AllowDirty) { ' --force' } else { '' }
-                Write-Host "  [WhatIf] git worktree remove$flag `"$path`"" -ForegroundColor Cyan
-                continue
-            }
-            if (-not $AllowDirty) {
-                Write-Warning "Skip remove (use -AllowDirty to discard uncommitted files)."
-                continue
-            }
+        if ($dirty -and $whatIfMode) {
+            $flag = if ($AllowDirty) { ' --force' } else { '' }
+            Write-Host "  [WhatIf] git worktree remove$flag `"$path`"" -ForegroundColor Cyan
+            continue
+        }
+
+        if ($dirty -and -not $whatIfMode -and -not $AllowDirty) {
+            Write-Warning "Skip remove (use -AllowDirty to discard uncommitted files): $path"
+            continue
         }
 
         if ($whatIfMode) {
             Write-Host "  [WhatIf] git worktree remove `"$path`"" -ForegroundColor Cyan
         }
+        elseif ($dirty -and $AllowDirty) {
+            git worktree remove --force $path 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "Remove failed; try: git worktree remove --force `"$path`""
+            }
+        }
         else {
-            if ($dirty -and $AllowDirty) {
-                git worktree remove --force $path 2>&1
-            }
-            else {
-                git worktree remove $path 2>&1
-            }
+            git worktree remove $path 2>&1
             if ($LASTEXITCODE -ne 0) {
                 Write-Warning "Remove failed; try: git worktree remove --force `"$path`""
             }
