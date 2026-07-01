@@ -74,3 +74,19 @@ _(No open human decisions.)_
 [2026-06-04 14:05] [HAIKU] [COMPLETE]: Daily digest + work-log append for 2026-06-04 utility pass.
 
 [2026-06-04] [RESEARCH] [COMPLETE]: docs/research/embedding-model-comparison.md, docs/research/consolidation-trigger-analysis.md, docs/research/README.md (DRAFT statuses); branch agent/research-embedding-bench @ worktree research-consolidation-trigger.
+
+[2026-07-01 14:15] [L2/L3] [HUMAN_DECISION_REQUIRED]: docs/decisions/0001-l2-store-schema.md drafted.
+  Proposed: Option B — SQLite sidecar (data/l2_sessions.db).
+  Rationale: structured query fits session artifact access patterns; embedding deferred to consolidation
+  pass; test isolation via ":memory:"; no new infrastructure.
+  Alternative: Option A (Qdrant collection omnikb_l2_sessions) is viable if operator prefers Qdrant-native.
+  Open questions: volume bind-mount strategy, session lifecycle (implicit vs explicit), retention policy.
+  Operator review needed before STATUS → ACCEPTED and L2 store implementation begins.
+
+[2026-07-01 15:00] [ORCHESTRATOR] [DECISION]: ADR-0001 ACCEPTED. Operator decisions recorded:
+  Q1 volume: bind-mount data/l2_sessions.db from host (add to docker-compose.yml volumes).
+  Q2 lifecycle: implicit session creation on first artifact write. No POST /sessions route. API unchanged.
+  Q3 retention: keep indefinitely. No CONSOLIDATION_RETENTION_DAYS config needed in v1.
+  ADR file updated: STATUS PROPOSED → ACCEPTED.
+  L2/L3 Agent dispatched to implement: L2StoreAdapter, migration script, docker-compose volume,
+    consolidation trigger wiring, tests.
