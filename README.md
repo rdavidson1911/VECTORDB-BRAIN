@@ -1,6 +1,6 @@
 # OmniKB Local Vector Knowledge Base
 
-Local Docker Desktop microservice scaffold for a vector-enabled knowledge base on Windows 11 Pro.
+Local container runtime (Podman Desktop or Docker Desktop) microservice scaffold for a vector-enabled knowledge base on Windows 11 Pro.
 
 **License:** MIT — see [LICENSE](LICENSE). **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). **Security:** [SECURITY.md](SECURITY.md).
 
@@ -28,17 +28,21 @@ Local Docker Desktop microservice scaffold for a vector-enabled knowledge base o
 1. Create your local env file:
    - `Copy-Item .env.example .env`
 2. Add source documents to `data/sources`.
-3. Start services:
-   - `docker compose up --build -d`
+3. Start services (Podman Desktop on Windows — recommended):
+   - `.\scripts\Invoke-OmniKBCompose.ps1 up -d` (sets `DOCKER_HOST` from the Podman machine; pins Desktop `podman.exe` when present)
+   - Or: `$env:DOCKER_HOST='npipe:////./pipe/podman-machine-default'; podman compose up --build -d`
+   - Docker Desktop equivalent: `docker compose up --build -d`
+   - On Windows Podman, prefer the helper script over `make compose-up` unless `DOCKER_HOST` is already set in the shell (see `docs/internal/podman-desktop-windows.md`).
 4. Check API:
-   - `Invoke-RestMethod http://localhost:8000/health`
-5. **Validate** curated content (recommended before first ingest):
+   - `Invoke-RestMethod http://127.0.0.1:8000/health`
+5. Qdrant dashboard (collections): `http://127.0.0.1:6333/dashboard`
+6. **Validate** curated content (recommended before first ingest):
    - `python scripts/validate_corpus.py --root data/sources/curated`
-   - Or `Invoke-RestMethod -Method Post -Uri http://localhost:8000/curation/validate -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
-6. Ingest the mounted corpus (notes under `data/sources/curated` must pass the curation gate when enabled):
-   - `Invoke-RestMethod -Method Post -Uri http://localhost:8000/ingest/path -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
-7. Query:
-   - `Invoke-RestMethod -Method Post -Uri http://localhost:8000/query -ContentType application/json -Body '{"query":"What is in my vault?","limit":5}'`
+   - Or `Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/curation/validate -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
+7. Ingest the mounted corpus (notes under `data/sources/curated` must pass the curation gate when enabled):
+   - `Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/ingest/path -ContentType application/json -Body '{"path":"/data/sources/curated","recursive":true}'`
+8. Query:
+   - `Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/query -ContentType application/json -Body '{"query":"What is in my vault?","limit":5}'`
 
 ## API Endpoints
 
@@ -119,6 +123,7 @@ Playbook:
 - System architecture diagram (Graphviz DOT): `docs/architecture-graphviz.md`
 - Incident and troubleshooting evidence log: `devtools/error-tracking-db.md`
 - Internal React/browser DevTools debugging guide: `docs/internal-react-devtools-debugging-guide.md`
+- Podman Desktop on Windows (internal): `docs/internal/podman-desktop-windows.md`
 - Docker Desktop / WSL2 resource allocation (internal): `docs/internal/docker-desktop-wsl2-resources.md` — Excel model via `python scripts/generate_docker_resource_model.py` → `internal_docs/docker-resource-budget-model.xlsx`
 
 ## React Web App

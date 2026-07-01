@@ -37,14 +37,24 @@ npm install
 
 ### Start services
 
+Podman Desktop (Windows):
+
+```powershell
+.\scripts\Invoke-OmniKBCompose.ps1 up -d
+```
+
+Docker Desktop:
+
 ```powershell
 docker compose up --build -d
 ```
 
+See `docs/internal/podman-desktop-windows.md` for `DOCKER_HOST`, bind mounts, and Qdrant GUI URLs.
+
 ### Verify API health
 
 ```powershell
-Invoke-RestMethod http://localhost:8000/health
+Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
 ## 3) Core Engineering Commands

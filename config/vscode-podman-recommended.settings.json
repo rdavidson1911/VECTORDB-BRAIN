@@ -1,0 +1,6 @@
+{
+  "containers.containerClient": "com.microsoft.visualstudio.containers.podman",
+  "containers.orchestratorClient": "com.microsoft.visualstudio.orchestrators.podmancompose",
+  "containers.containerCommand": "${env:LOCALAPPDATA}\\Programs\\Podman\\podman.exe",
+  "containers.composeCommand": "${env:LOCALAPPDATA}\\Programs\\Podman\\podman.exe"
+}
