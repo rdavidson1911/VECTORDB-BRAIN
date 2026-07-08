@@ -5,8 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "Checking Docker services..."
-docker compose ps
+Write-Host "Checking Podman services..."
+& "$PSScriptRoot\Invoke-OmniKBCompose.ps1" ps
 
 Write-Host "Checking API health..."
 $health = Invoke-RestMethod -Method Get -Uri "$ApiBase/health"

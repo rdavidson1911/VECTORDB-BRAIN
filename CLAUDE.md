@@ -144,9 +144,15 @@ python -m pre_commit run --all-files
 **Services:**
 
 ```powershell
+# Podman Desktop (Windows — recommended; see docs/internal/podman-desktop-windows.md)
+.\scripts\Invoke-OmniKBCompose.ps1 up -d
+.\scripts\Invoke-OmniKBCompose.ps1 down
+
+# Docker Desktop equivalent
 docker compose up -d
 docker compose down
-Invoke-RestMethod http://localhost:8000/health
+
+Invoke-RestMethod http://127.0.0.1:8000/health
 ```
 
 **Corpus operations:**
