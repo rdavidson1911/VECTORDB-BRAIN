@@ -90,3 +90,30 @@ _(No open human decisions.)_
   ADR file updated: STATUS PROPOSED → ACCEPTED.
   L2/L3 Agent dispatched to implement: L2StoreAdapter, migration script, docker-compose volume,
     consolidation trigger wiring, tests.
+
+[2026-07-01 15:30] [L2/L3] [COMPLETE]: L2 store implemented. Commit 81e4c10 on
+  worktree-agent-a1d74e60a5f266ab0. Files: src/omnikb/adapters/l2_store.py (L2StoreAdapter),
+  scripts/migrations/0001_create_l2_sessions.py, docker-compose.yml (volume bind-mount),
+  src/omnikb/consolidation/trigger.py (stub → export_for_consolidation call),
+  src/omnikb/config/settings.py (l2_db_path field), tests/test_l2_store.py (8 tests).
+  Gates: ruff clean · mypy 0 errors · bandit clean · pytest 79 passed.
+
+[2026-07-01 15:31] [ORCHESTRATOR] [VALIDATE]: L2 store implementation reviewed and APPROVED.
+  Per-method connections correct for WAL ✓  implicit session lifecycle ✓  JSON columns ✓
+  trigger.py route signature unchanged ✓  docker-compose.yml single entry only ✓
+  No new API routes ✓  No escalation triggers hit ✓
+  Operator action required: push worktree-agent-a1d74e60a5f266ab0 + open PR.
+
+[2026-07-01 16:00] [ORCHESTRATOR] [COMPLETE]: Research WS1 benchmark run. 2-model subset
+  (all-MiniLM-L6-v2, all-mpnet-base-v2) via Podman shared network (research-net).
+  Results: both models recall@5=1.0 recall@10=1.0 on micro-corpus (3 chunks).
+  mpnet: lat_p50=43.5ms build=28511ms mem=365MB score=0.95.
+  MiniLM: lat_p50=47.3ms build=20392ms mem=459MB score=0.65.
+  CAVEAT: corpus saturated (3 chunks only). Composite score gap driven by latency/memory
+  normalization only — recall upgrade gate (≥0.2 absolute) cannot be evaluated.
+  DECISION (ADR-0001 item 3): STAY on all-MiniLM-L6-v2. No upgrade evidence at current scale.
+  Re-run required after curated corpus reaches N≥50 documents.
+  Artifact: docs/research/artifacts/embedding_benchmark_latest.json.
+  embedding-model-comparison.md promoted to STATUS: REVIEWED.
+  Run commands updated to confirmed Podman network approach (host.containers.internal does
+  not reach loopback-bound containers on Windows; shared network required).
