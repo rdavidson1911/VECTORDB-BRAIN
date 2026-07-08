@@ -117,3 +117,12 @@ _(No open human decisions.)_
   embedding-model-comparison.md promoted to STATUS: REVIEWED.
   Run commands updated to confirmed Podman network approach (host.containers.internal does
   not reach loopback-bound containers on Windows; shared network required).
+
+[2026-07-08 18:05] [ORCHESTRATOR] [COMPLETE]: Corpus curation pipeline demo — 3 files promoted to data/sources/curated/.
+  Files: sample-note.md, sample-rag.md (YAML frontmatter added), sample-ops.txt.
+  Flow: data/sources/ root → staging/ (frontmatter authored) → validate_corpus --gate-root curated
+  (0 errors, 0 warnings, 3 entries) → curated/ (promoted).
+  .gitignore updated to version-control data/sources/curated/** and track data/sources/staging/.gitkeep.
+  Gate confirmed clean on final curated/ check before commit.
+  NOTE: These are sample smoke fixtures (sample-* exempt glob applies). Re-run benchmark after
+  curated corpus reaches N≥50 real documents to evaluate embedding upgrade gate.

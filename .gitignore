@@ -13,6 +13,10 @@ data/sources/*
 !data/sources/sample-note.md
 !data/sources/sample-ops.txt
 !data/sources/sample-rag.md
+!data/sources/curated/
+!data/sources/staging/
+data/sources/staging/*
+!data/sources/staging/.gitkeep
 data/qdrant/*
 !data/qdrant/.gitkeep
 data/processed/*
