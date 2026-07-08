@@ -1,0 +1,40 @@
+﻿{
+  "name": "VECTORDB-BRAIN — Full Stack",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.devcontainer.yml"],
+  "service": "api",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.11" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "20" },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "pip install -e '.[dev]' && npm install --prefix frontend",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "bradlc.vscode-tailwindcss",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+        "mypy-type-checker.args": ["--strict"]
+      }
+    }
+  },
+  "forwardPorts": [8000, 5173, 6333],
+  "portsAttributes": {
+    "8000": { "label": "FastAPI",   "onAutoForward": "notify" },
+    "5173": { "label": "React UI",  "onAutoForward": "openBrowser" },
+    "6333": { "label": "Qdrant",    "onAutoForward": "silent" }
+  },
+  "remoteEnv": {
+    "QDRANT_URL": "http://qdrant:6333",
+    "PYTHONPATH": "/workspace"
+  }
+}

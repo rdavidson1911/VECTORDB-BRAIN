@@ -6,6 +6,7 @@ from omnikb.adapters.embedder import SentenceTransformerEmbedder
 from omnikb.adapters.qdrant_store import QdrantStore
 from omnikb.config.host_paths import canonical_data_sources_path, resolve_host_sources_root
 from omnikb.config.settings import Settings, get_settings
+from omnikb.consolidation.trigger import ConsolidationTriggerService
 from omnikb.curation.validate import CurationPolicy
 from omnikb.services.ingestion_service import IngestionService
 from omnikb.services.query_service import QueryService
@@ -17,6 +18,7 @@ class AppState:
     store: QdrantStore
     ingestion_service: IngestionService
     query_service: QueryService
+    consolidation_service: ConsolidationTriggerService
 
 
 def build_state() -> AppState:
@@ -52,6 +54,10 @@ def build_state() -> AppState:
             curation_allow_override=settings.curation_allow_override,
         ),
         query_service=QueryService(store=store, embedder=embedder),
+        consolidation_service=ConsolidationTriggerService(
+            enabled=settings.consolidation_enabled,
+            min_chunk_threshold=settings.consolidation_min_chunk_threshold,
+        ),
     )
 
 

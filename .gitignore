@@ -13,6 +13,10 @@ data/sources/*
 !data/sources/sample-note.md
 !data/sources/sample-ops.txt
 !data/sources/sample-rag.md
+!data/sources/curated/
+!data/sources/staging/
+data/sources/staging/*
+!data/sources/staging/.gitkeep
 data/qdrant/*
 !data/qdrant/.gitkeep
 data/processed/*
@@ -43,3 +47,12 @@ logs/*.log
 
 # My Personal Notes
 my-REMINDERS.md
+
+# local tooling and personal vaults
+obsidian_vault/
+ollama/
+*.pdf
+
+# Agent orchestration — local only
+qdrant_research_data/
+docs/digests/digest-*.md

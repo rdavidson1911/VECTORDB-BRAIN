@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     curation_gate_roots: list[str] = Field(default_factory=lambda: ["curated"])
     curation_allow_override: bool = False
 
+    consolidation_enabled: bool = True
+    consolidation_min_chunk_threshold: int = Field(default=0, ge=0)
+
     @field_validator("curation_gate_roots", mode="before")
     @classmethod
     def _parse_gate_roots(cls, value: object) -> list[str]:

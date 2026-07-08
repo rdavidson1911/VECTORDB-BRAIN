@@ -1,0 +1,27 @@
+﻿{
+  "name": "VECTORDB-BRAIN — Code Quality Agent",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "pip install ruff mypy bandit pytest pytest-cov --break-system-packages && pip install -e '.[dev]' --break-system-packages || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.mypy-type-checker",
+        "charliermarsh.ruff",
+        "GitHub.copilot-chat"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" },
+        "mypy-type-checker.args": ["--strict"]
+      }
+    }
+  },
+  "remoteEnv": {
+    "AGENT_ROLE": "code-quality",
+    "PYTHONPATH": "/workspaces/VECTORDB-BRAIN"
+  }
+}

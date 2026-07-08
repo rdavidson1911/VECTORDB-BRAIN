@@ -1,0 +1,26 @@
+﻿{
+  "name": "VECTORDB-BRAIN — Qdrant Agent",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "pip install qdrant-client pandas tabulate pytest --break-system-packages",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "GitHub.copilot-chat"
+      ]
+    }
+  },
+  "forwardPorts": [6334],
+  "portsAttributes": {
+    "6334": { "label": "Qdrant Research", "onAutoForward": "silent" }
+  },
+  "remoteEnv": {
+    "QDRANT_URL": "http://localhost:6334",
+    "AGENT_ROLE": "qdrant",
+    "PYTHONPATH": "/workspaces/VECTORDB-BRAIN"
+  },
+  "postStartCommand": "docker run -d -p 6334:6333 -v qdrant_agent:/qdrant/storage qdrant/qdrant:latest || true"
+}

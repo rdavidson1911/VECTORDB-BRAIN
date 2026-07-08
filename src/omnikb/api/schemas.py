@@ -144,3 +144,30 @@ class UiLogEntry(BaseModel):
 
 class UiLogBatch(BaseModel):
     entries: list[UiLogEntry] = Field(default_factory=list, max_length=200)
+
+
+class ConsolidationRunRequest(BaseModel):
+    """Body for explicit L2 consolidation trigger (ADR: explicit API first)."""
+
+    scope: str | None = Field(default=None, max_length=256)
+    dry_run: bool = False
+    reason: str | None = Field(default=None, max_length=128)
+
+
+class ConsolidationRunResponse(BaseModel):
+    job_id: str
+    accepted_at: str
+    status: Literal["accepted"]
+
+
+class ConsolidationStatusResponse(BaseModel):
+    job_id: str
+    accepted_at: str
+    status: Literal["accepted", "running", "completed", "failed"]
+    scope: str | None = None
+    dry_run: bool = False
+    reason: str | None = None
+    started_at: str | None = None
+    finished_at: str | None = None
+    message: str | None = None
+    error: str | None = None
