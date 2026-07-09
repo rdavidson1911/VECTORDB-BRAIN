@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     consolidation_enabled: bool = True
     consolidation_min_chunk_threshold: int = Field(default=0, ge=0)
 
+    l2_db_path: str = Field(
+        default="data/l2_sessions.db",
+        description="Path to the SQLite Layer-2 session store (bind-mounted in Docker).",
+    )
+
     @field_validator("curation_gate_roots", mode="before")
     @classmethod
     def _parse_gate_roots(cls, value: object) -> list[str]:

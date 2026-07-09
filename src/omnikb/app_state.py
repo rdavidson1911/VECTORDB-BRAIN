@@ -3,11 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from omnikb.adapters.embedder import SentenceTransformerEmbedder
+from omnikb.adapters.l2_store import L2StoreAdapter
 from omnikb.adapters.qdrant_store import QdrantStore
 from omnikb.config.host_paths import canonical_data_sources_path, resolve_host_sources_root
 from omnikb.config.settings import Settings, get_settings
 from omnikb.consolidation.trigger import ConsolidationTriggerService
 from omnikb.curation.validate import CurationPolicy
+from omnikb.services.enhanced_query_service import EnhancedQueryService
 from omnikb.services.ingestion_service import IngestionService
 from omnikb.services.query_service import QueryService
 
@@ -18,6 +20,7 @@ class AppState:
     store: QdrantStore
     ingestion_service: IngestionService
     query_service: QueryService
+    enhanced_query_service: EnhancedQueryService
     consolidation_service: ConsolidationTriggerService
 
 
@@ -30,6 +33,7 @@ def build_state() -> AppState:
         timeout_seconds=settings.qdrant_timeout_seconds,
     )
     embedder = SentenceTransformerEmbedder(model_name=settings.embedding_model)
+    l2_store = L2StoreAdapter(db_path=settings.l2_db_path)
     return AppState(
         settings=settings,
         store=store,
@@ -54,6 +58,11 @@ def build_state() -> AppState:
             curation_allow_override=settings.curation_allow_override,
         ),
         query_service=QueryService(store=store, embedder=embedder),
+        enhanced_query_service=EnhancedQueryService(
+            store=store,
+            embedder=embedder,
+            l2_store=l2_store,
+        ),
         consolidation_service=ConsolidationTriggerService(
             enabled=settings.consolidation_enabled,
             min_chunk_threshold=settings.consolidation_min_chunk_threshold,
