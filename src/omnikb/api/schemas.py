@@ -146,6 +146,48 @@ class UiLogBatch(BaseModel):
     entries: list[UiLogEntry] = Field(default_factory=list, max_length=200)
 
 
+class ScoringBreakdown(BaseModel):
+    composite: float
+    semantic: float
+    bm25_norm: float
+    coverage: float
+    memory_boost: float
+
+
+class EnhancedQueryMatch(BaseModel):
+    rank: int
+    id: str
+    source_path: str | None = None
+    file_type: str | None = None
+    chunk_index: int | None = None
+    content_preview: str | None = None
+    text: str | None = None
+    content_hash: str | None = None
+    scoring: ScoringBreakdown
+
+
+class EnhancedQueryRequest(BaseModel):
+    query: str = Field(min_length=1)
+    top_k: int = Field(default=3, ge=1, le=10)
+    session_id: str | None = None
+    save_memory: bool = True
+
+
+class EnhancedQueryAnalytics(BaseModel):
+    latency_ms: float
+    candidate_pool: int
+    returned_count: int
+    top_composite: float
+    scoring_weights: dict[str, float]
+
+
+class EnhancedQueryResponse(BaseModel):
+    session_id: str
+    memory_id: int | None
+    matches: list[EnhancedQueryMatch]
+    analytics: EnhancedQueryAnalytics
+
+
 class ConsolidationRunRequest(BaseModel):
     """Body for explicit L2 consolidation trigger (ADR: explicit API first)."""
 

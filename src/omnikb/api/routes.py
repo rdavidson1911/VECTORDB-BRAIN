@@ -14,6 +14,10 @@ from omnikb.api.schemas import (
     CurationIssueOut,
     CurationValidateRequest,
     CurationValidateResponse,
+    EnhancedQueryAnalytics,
+    EnhancedQueryMatch,
+    EnhancedQueryRequest,
+    EnhancedQueryResponse,
     HealthResponse,
     IngestFileRequest,
     IngestPathRequest,
@@ -155,6 +159,25 @@ def query(payload: QueryRequest, state: AppState = Depends(get_app_state)) -> Qu
             )
         )
     return QueryResponse(matches=matches, analytics=SearchAnalytics(**analytics))
+
+
+@router.post("/query/enhanced")
+def query_enhanced(
+    payload: EnhancedQueryRequest, state: AppState = Depends(get_app_state)
+) -> EnhancedQueryResponse:
+    result = state.enhanced_query_service.query_enhanced(
+        query=payload.query,
+        top_k=payload.top_k,
+        session_id=payload.session_id,
+        save_memory=payload.save_memory,
+    )
+    matches = [EnhancedQueryMatch(**m) for m in result["matches"]]
+    return EnhancedQueryResponse(
+        session_id=result["session_id"],
+        memory_id=result["memory_id"],
+        matches=matches,
+        analytics=EnhancedQueryAnalytics(**result["analytics"]),
+    )
 
 
 @router.get("/collections/{name}/stats")
