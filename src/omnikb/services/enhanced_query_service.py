@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 from omnikb.adapters.embedder import SentenceTransformerEmbedder
 from omnikb.adapters.l2_store import L2StoreAdapter
 from omnikb.adapters.qdrant_store import QdrantStore
+from omnikb.config.settings import get_settings
+from omnikb.infra.file_log_writer import append_jsonl
 
 # ---------------------------------------------------------------------------
 # Scoring primitives (pure functions — easy to unit-test)
@@ -226,19 +228,106 @@ class EnhancedQueryService:
                 },
             )
 
+        latency_ms = round((time.perf_counter() - t0) * 1000, 3)
         top_composite = matches[0]["scoring"]["composite"] if matches else 0.0
-        return {
+        result: dict = {
             "session_id": sid,
             "memory_id": memory_id,
             "matches": matches,
             "analytics": {
-                "latency_ms": round((time.perf_counter() - t0) * 1000, 3),
+                "latency_ms": latency_ms,
                 "candidate_pool": len(candidates),
                 "returned_count": len(matches),
                 "top_composite": top_composite,
                 "scoring_weights": self._weights_dict(),
             },
         }
+
+        if get_settings().l2_scoring_log_enabled:
+            self._emit_score_log(
+                query=query,
+                session_id=sid,
+                memory_id=memory_id,
+                top_k=top_k,
+                latency_ms=latency_ms,
+                chunk_ids=chunk_ids,
+                ranked_idx=ranked_idx,
+                semantic_scores=semantic_scores,
+                norm_bm25=norm_bm25,
+                cov_scores=cov_scores,
+                norm_mem=norm_mem,
+                composite=composite,
+                candidates=candidates,
+            )
+
+        return result
+
+    def _emit_score_log(
+        self,
+        query: str,
+        session_id: str,
+        memory_id: int | None,
+        top_k: int,
+        latency_ms: float,
+        chunk_ids: list[str],
+        ranked_idx: list[int],
+        semantic_scores: list[float],
+        norm_bm25: list[float],
+        cov_scores: list[float],
+        norm_mem: list[float],
+        composite: list[float],
+        candidates: list[dict],
+    ) -> None:
+        """Write a structured scoring record to the l2-scoring log stream."""
+        # l1_rank_map: original 1-indexed Qdrant position keyed by list index
+        l1_rank_map = {i: i + 1 for i in range(len(chunk_ids))}
+
+        scored_results = []
+        for final_rank, i in enumerate(ranked_idx):
+            l1_rank = l1_rank_map[i]
+            w_sem = round(self._w_sem * semantic_scores[i], 4)
+            w_bm25 = round(self._w_bm25 * norm_bm25[i], 4)
+            w_cov = round(self._w_cov * cov_scores[i], 4)
+            w_mem = round(self._w_mem * norm_mem[i], 4)
+            contributions = {
+                "semantic": w_sem,
+                "bm25": w_bm25,
+                "coverage": w_cov,
+                "memory": w_mem,
+            }
+            dominant = max(contributions, key=lambda k: contributions[k])
+            payload = dict(candidates[i].get("payload") or {})
+            scored_results.append(
+                {
+                    "rank": final_rank + 1,
+                    "l1_rank": l1_rank,
+                    "rank_delta": l1_rank - (final_rank + 1),
+                    "id": chunk_ids[i],
+                    "source_path": payload.get("source_path"),
+                    "chunk_index": payload.get("chunk_index"),
+                    "composite": round(composite[i], 4),
+                    "semantic": round(semantic_scores[i], 4),
+                    "bm25_norm": round(norm_bm25[i], 4),
+                    "coverage": round(cov_scores[i], 4),
+                    "memory_boost": round(norm_mem[i], 4),
+                    "dominant_signal": dominant,
+                    "weighted_contributions": contributions,
+                }
+            )
+
+        append_jsonl(
+            "l2-scoring",
+            {
+                "query": query,
+                "session_id": session_id,
+                "memory_id": memory_id,
+                "top_k": top_k,
+                "candidate_pool": len(chunk_ids),
+                "latency_ms": latency_ms,
+                "scoring_weights": self._weights_dict(),
+                "results": scored_results,
+            },
+        )
 
     def _weights_dict(self) -> dict[str, float]:
         return {

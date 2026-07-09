@@ -48,6 +48,15 @@ class Settings(BaseSettings):
         description="Path to the SQLite Layer-2 session store (bind-mounted in Docker).",
     )
 
+    l2_scoring_log_enabled: bool = Field(
+        default=True,
+        description=(
+            "Write a structured scoring record to logs/l2-scoring-YYYY-MM-DD.jsonl "
+            "after every /query/enhanced call. Includes rank_delta, weighted "
+            "contributions, and dominant signal per returned chunk."
+        ),
+    )
+
     @field_validator("curation_gate_roots", mode="before")
     @classmethod
     def _parse_gate_roots(cls, value: object) -> list[str]:
