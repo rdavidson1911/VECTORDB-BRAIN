@@ -83,6 +83,21 @@ _(No open human decisions.)_
   Open questions: volume bind-mount strategy, session lifecycle (implicit vs explicit), retention policy.
   Operator review needed before STATUS → ACCEPTED and L2 store implementation begins.
 
+[2026-07-09 02:30] [L2/L3] [COMPLETE]: Scoring log feature shipped — feat(l2): structured scoring log for /query/enhanced (commit 57414e4, PR #11).
+  Each POST /query/enhanced now emits a record to logs/l2-scoring-YYYY-MM-DD.jsonl containing:
+    rank_delta (positions promoted/demoted vs L1 Qdrant order)
+    weighted_contributions (exact numeric signal contribution per chunk)
+    dominant_signal (which signal drove each rank)
+    l1_rank (original Qdrant position for reference)
+  Gated by l2_scoring_log_enabled setting (default: true). 6 new tests added (26/26 total).
+  Live verification: rank-1 result was l1_rank=13 — BM25+coverage promoted it 12 positions.
+
+[2026-07-09 01:00] [L2/L3] [COMPLETE]: Layer 2 enhanced retrieval endpoint shipped — feat(l2): Layer 2 enhanced retrieval (commit 94a129d, PR #11).
+  POST /query/enhanced: composite re-ranking (semantic 0.50 + BM25 0.20 + coverage 0.15 + memory 0.15).
+  L2StoreAdapter: SQLite WAL-mode episodic store with implicit session creation.
+  Memory boost feedback loop: repeat queries lift previously-retrieved chunks via historical frequency.
+  20/20 tests; all pre-commit gates passed.
+
 [2026-07-01 15:00] [ORCHESTRATOR] [DECISION]: ADR-0001 ACCEPTED. Operator decisions recorded:
   Q1 volume: bind-mount data/l2_sessions.db from host (add to docker-compose.yml volumes).
   Q2 lifecycle: implicit session creation on first artifact write. No POST /sessions route. API unchanged.
