@@ -13,7 +13,7 @@
     "smoke:playwright": "node ../devtools/playwright-smoke.mjs"
   },
   "dependencies": {
-    "plotly.js-dist-min": "^3.5.1",
+    "plotly.js-dist-min": "^3.7.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.5",
     "react-plotly.js": "^2.6.0",
