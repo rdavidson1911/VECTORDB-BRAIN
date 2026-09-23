@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -17,20 +18,19 @@ def test_interactions_events_endpoint(tmp_path: Path) -> None:
     store = InteractionStore(tmp_path / "api-interactions.db")
     interaction_service = InteractionService(store)
 
-    class _FakeSettings:
-        qdrant_collection = "omnikb_documents"
-        ui_logging_enabled = False
-
-    class _FakeState:
-        settings = _FakeSettings()
-        store = None
-        ingestion_service = None
-        query_service = None
-        interaction_service = interaction_service
-        consolidation_service = ConsolidationTriggerService(enabled=True)
-        dreaming_service = None
-
-    state = _FakeState()
+    settings = SimpleNamespace(
+        qdrant_collection="omnikb_documents",
+        ui_logging_enabled=False,
+    )
+    state = SimpleNamespace(
+        settings=settings,
+        store=None,
+        ingestion_service=None,
+        query_service=None,
+        interaction_service=interaction_service,
+        consolidation_service=ConsolidationTriggerService(enabled=True),
+        dreaming_service=None,
+    )
 
     app = FastAPI()
     app.include_router(router)
