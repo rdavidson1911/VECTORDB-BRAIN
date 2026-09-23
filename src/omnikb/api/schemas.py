@@ -40,6 +40,7 @@ class QueryRequest(BaseModel):
     min_score: float | None = Field(default=None, ge=0.0, le=1.0)
     include_neighbors: bool = False
     neighbor_window: int = Field(default=1, ge=0, le=3)
+    include_layer3: bool = False
 
 
 class HealthResponse(BaseModel):
@@ -83,7 +84,18 @@ class QueryMatch(BaseModel):
     content_hash: str | None = None
     updated_at: str | None = None
     indexed_at: str | None = None
+    cosine_score: float | None = None
+    boost_norm: float | None = None
+    hit_count: float | None = None
     payload: dict = Field(default_factory=dict)
+
+
+class RelationHit(BaseModel):
+    src_point_id: str
+    dst_point_id: str
+    score: float
+    score_version: str
+    created_at: str
 
 
 class SearchAnalytics(BaseModel):
@@ -97,6 +109,26 @@ class SearchAnalytics(BaseModel):
 class QueryResponse(BaseModel):
     matches: list[QueryMatch]
     analytics: SearchAnalytics
+    layer1_matches: list[QueryMatch] = Field(default_factory=list)
+    layer2_boosted_matches: list[QueryMatch] = Field(default_factory=list)
+    layer3_relations: list[RelationHit] = Field(default_factory=list)
+
+
+class InteractionEventIn(BaseModel):
+    event_type: Literal["query_impression", "result_click", "result_expand"]
+    point_id: str = Field(min_length=1, max_length=128)
+    query_text_hash: str | None = Field(default=None, max_length=128)
+    memory_tier: str | None = Field(default=None, max_length=64)
+    ts: str | None = None
+
+
+class InteractionEventsRequest(BaseModel):
+    session_id: str = Field(min_length=1, max_length=128)
+    events: list[InteractionEventIn] = Field(default_factory=list, max_length=200)
+
+
+class InteractionEventsResponse(BaseModel):
+    accepted: int
 
 
 class ChunkPreview(BaseModel):

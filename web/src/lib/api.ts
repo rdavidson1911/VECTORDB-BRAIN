@@ -11,6 +11,7 @@ import type {
   IngestFileRequest,
   IngestPathRequest,
   IngestPathResponse,
+  InteractionEventsRequest,
   QueryRequest,
   QueryResponse,
   SourceSummary,
@@ -77,6 +78,13 @@ export const api = {
       '/query',
       { method: 'POST', body: JSON.stringify(body) },
       { ...ctx, label: ctx?.label ?? 'search.query' },
+    )
+  },
+  recordInteractions(body: InteractionEventsRequest, ctx?: ApiRequestContext) {
+    return requestJson<{ accepted: number }>(
+      '/interactions/events',
+      { method: 'POST', body: JSON.stringify(body) },
+      { ...ctx, label: ctx?.label ?? 'interactions.events' },
     )
   },
   ingestPath(body: IngestPathRequest, ctx?: ApiRequestContext) {

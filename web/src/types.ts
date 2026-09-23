@@ -31,7 +31,18 @@ export type QueryMatch = {
   content_hash?: string | null
   updated_at?: string | null
   indexed_at?: string | null
+  cosine_score?: number | null
+  boost_norm?: number | null
+  hit_count?: number | null
   payload: Record<string, unknown>
+}
+
+export type RelationHit = {
+  src_point_id: string
+  dst_point_id: string
+  score: number
+  score_version: string
+  created_at: string
 }
 
 export type SearchAnalytics = {
@@ -45,6 +56,9 @@ export type SearchAnalytics = {
 export type QueryResponse = {
   matches: QueryMatch[]
   analytics: SearchAnalytics
+  layer1_matches?: QueryMatch[]
+  layer2_boosted_matches?: QueryMatch[]
+  layer3_relations?: RelationHit[]
 }
 
 export type QueryRequest = {
@@ -59,6 +73,22 @@ export type QueryRequest = {
   date_to?: string
   text_contains?: string
   min_score?: number
+  include_neighbors?: boolean
+  neighbor_window?: number
+  include_layer3?: boolean
+}
+
+export type InteractionEvent = {
+  event_type: 'query_impression' | 'result_click' | 'result_expand'
+  point_id: string
+  query_text_hash?: string
+  memory_tier?: string
+  ts?: string
+}
+
+export type InteractionEventsRequest = {
+  session_id: string
+  events: InteractionEvent[]
 }
 
 export type IngestPathRequest = {

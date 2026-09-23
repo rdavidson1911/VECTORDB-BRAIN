@@ -20,9 +20,12 @@ from omnikb.api.schemas import (
     IngestPathResponse,
     IngestPreviewRequest,
     IngestPreviewResponse,
+    InteractionEventsRequest,
+    InteractionEventsResponse,
     QueryMatch,
     QueryRequest,
     QueryResponse,
+    RelationHit,
     SearchAnalytics,
     SourceSummary,
     UiLogBatch,
@@ -78,6 +81,51 @@ def _raise_ingest_error(exc: Exception) -> None:
     raise exc
 
 
+def _to_query_match(item: dict) -> QueryMatch:
+    result = dict(item)
+    payload_dict = dict(result.get("payload") or {})
+    return QueryMatch(
+        id=str(result.get("id", "")),
+        score=float(result.get("score", 0.0)),
+        source_path=payload_dict.get("source_path"),
+        file_type=payload_dict.get("file_type"),
+        chunk_index=payload_dict.get("chunk_index"),
+        content_preview=payload_dict.get("content_preview"),
+        text=payload_dict.get("text"),
+        content_hash=payload_dict.get("content_hash"),
+        updated_at=payload_dict.get("updated_at"),
+        indexed_at=payload_dict.get("indexed_at"),
+        cosine_score=(
+            float(result["cosine_score"])
+            if result.get("cosine_score") is not None
+            else (
+                float(payload_dict["cosine_score"])
+                if payload_dict.get("cosine_score") is not None
+                else None
+            )
+        ),
+        boost_norm=(
+            float(result["boost_norm"])
+            if result.get("boost_norm") is not None
+            else (
+                float(payload_dict["boost_norm"])
+                if payload_dict.get("boost_norm") is not None
+                else None
+            )
+        ),
+        hit_count=(
+            float(result["hit_count"])
+            if result.get("hit_count") is not None
+            else (
+                float(payload_dict["hit_count"])
+                if payload_dict.get("hit_count") is not None
+                else None
+            )
+        ),
+        payload=payload_dict,
+    )
+
+
 @router.post("/ingest/file")
 def ingest_file(
     payload: IngestFileRequest, state: AppState = Depends(get_app_state)
@@ -122,7 +170,7 @@ def ingest_path(
 
 @router.post("/query")
 def query(payload: QueryRequest, state: AppState = Depends(get_app_state)) -> QueryResponse:
-    raw_matches, analytics = state.query_service.query(
+    layer1_raw, layer2_raw, layer3_raw, legacy_raw, analytics = state.query_service.query(
         text=payload.query,
         limit=payload.limit,
         source_path=payload.source_path,
@@ -134,27 +182,39 @@ def query(payload: QueryRequest, state: AppState = Depends(get_app_state)) -> Qu
         date_to=payload.date_to,
         text_contains=payload.text_contains,
         min_score=payload.min_score,
+        include_neighbors=payload.include_neighbors,
+        neighbor_window=payload.neighbor_window,
+        include_layer3=payload.include_layer3,
     )
-    matches = []
-    for item in raw_matches:
-        result = dict(item)
-        payload_dict = dict(result.get("payload") or {})
-        matches.append(
-            QueryMatch(
-                id=str(result.get("id", "")),
-                score=float(result.get("score", 0.0)),
-                source_path=payload_dict.get("source_path"),
-                file_type=payload_dict.get("file_type"),
-                chunk_index=payload_dict.get("chunk_index"),
-                content_preview=payload_dict.get("content_preview"),
-                text=payload_dict.get("text"),
-                content_hash=payload_dict.get("content_hash"),
-                updated_at=payload_dict.get("updated_at"),
-                indexed_at=payload_dict.get("indexed_at"),
-                payload=payload_dict,
-            )
-        )
-    return QueryResponse(matches=matches, analytics=SearchAnalytics(**analytics))
+    matches = [_to_query_match(item) for item in legacy_raw]
+    layer1 = [_to_query_match(item) for item in layer1_raw]
+    layer2 = [_to_query_match(item) for item in layer2_raw]
+    layer3 = [RelationHit(**item) for item in layer3_raw]
+    return QueryResponse(
+        matches=matches,
+        analytics=SearchAnalytics(**analytics),
+        layer1_matches=layer1,
+        layer2_boosted_matches=layer2,
+        layer3_relations=layer3,
+    )
+
+
+@router.post("/interactions/events")
+def interactions_events(
+    payload: InteractionEventsRequest, state: AppState = Depends(get_app_state)
+) -> InteractionEventsResponse:
+    events = [
+        {
+            "event_type": e.event_type,
+            "point_id": e.point_id,
+            "query_text_hash": e.query_text_hash,
+            "memory_tier": e.memory_tier or "default",
+            "ts": e.ts,
+        }
+        for e in payload.events
+    ]
+    accepted = state.interaction_service.record_events(session_id=payload.session_id, events=events)
+    return InteractionEventsResponse(accepted=accepted)
 
 
 @router.get("/collections/{name}/stats")

@@ -1,13 +1,14 @@
-"""Explicit API-driven L2 consolidation trigger (ADR: consolidation-trigger-analysis.md)."""
+"""Explicit API-driven consolidation / idle dreaming trigger."""
 
 from __future__ import annotations
 
 import logging
 import threading
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 
 log = logging.getLogger(__name__)
 
@@ -32,10 +33,12 @@ class ConsolidationJob:
 
 @dataclass
 class ConsolidationTriggerService:
-    """Single-flight consolidation trigger; runs work off the request thread."""
+    """Single-flight consolidation trigger; runs dreaming work off the request thread."""
 
     enabled: bool = True
     min_chunk_threshold: int = 0
+    dreaming_runner: Callable[..., dict[str, Any]] | None = None
+    force_dreaming: bool = False
     _flight_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     _active_job_id: str | None = field(default=None, repr=False)
     _jobs: dict[str, ConsolidationJob] = field(default_factory=dict, repr=False)
@@ -93,9 +96,20 @@ class ConsolidationTriggerService:
         job.started_at = _utc_now_iso()
         try:
             if job.dry_run:
-                job.message = "dry_run: no consolidation side effects applied"
+                if self.dreaming_runner is not None:
+                    result = self.dreaming_runner(force=True, dry_run=True)
+                    job.message = f"dry_run: {result}"
+                else:
+                    job.message = "dry_run: no consolidation side effects applied"
+            elif self.dreaming_runner is not None:
+                # Explicit API always forces dreaming; idle gate used by scheduled callers.
+                force = self.force_dreaming or (job.reason != "idle")
+                result = self.dreaming_runner(force=force, dry_run=False)
+                job.message = (
+                    f"dreaming: reason={result.get('reason')} "
+                    f"edges_written={result.get('edges_written', 0)}"
+                )
             else:
-                # L2 episodic merge not implemented yet; trigger contract only.
                 job.message = (
                     "consolidation_stub: trigger executed; episodic store pipeline not wired"
                 )

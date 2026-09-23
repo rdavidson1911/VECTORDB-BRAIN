@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     consolidation_enabled: bool = True
     consolidation_min_chunk_threshold: int = Field(default=0, ge=0)
 
+    interactions_db_path: str = "data/processed/interactions.db"
+    interaction_boost_weight: float = Field(default=0.25, ge=0.0, le=1.0)
+    dreaming_idle_minutes: float = Field(default=30.0, ge=0.0)
+    dreaming_edge_min_score: float = Field(default=0.72, ge=0.0, le=1.0)
+    dreaming_candidate_limit: int = Field(default=48, ge=2, le=256)
+
     @field_validator("curation_gate_roots", mode="before")
     @classmethod
     def _parse_gate_roots(cls, value: object) -> list[str]:

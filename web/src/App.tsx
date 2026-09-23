@@ -72,6 +72,9 @@ function App() {
   const [sources, setSources] = useState<SourceSummary[]>([])
   const [queryForm, setQueryForm] = useState<QueryForm>(INITIAL_QUERY)
   const [matches, setMatches] = useState<QueryMatch[]>([])
+  const [layer1Matches, setLayer1Matches] = useState<QueryMatch[]>([])
+  const [layer2Matches, setLayer2Matches] = useState<QueryMatch[]>([])
+  const [sessionId] = useState(() => newCorrelationId())
   const [analytics, setAnalytics] = useState<SearchAnalytics | null>(null)
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -144,11 +147,30 @@ function App() {
         if (queryForm.date_to) request.date_to = queryForm.date_to
         if (queryForm.text_contains) request.text_contains = queryForm.text_contains
         if (queryForm.min_score_text) request.min_score = Number(queryForm.min_score_text)
+        request.include_neighbors = true
+        request.include_layer3 = true
         const response = await api.query(request, { correlationId })
+        const l1 = response.layer1_matches ?? response.matches
+        const l2 = response.layer2_boosted_matches ?? response.matches
         setMatches(response.matches)
+        setLayer1Matches(l1)
+        setLayer2Matches(l2)
         setAnalytics(response.analytics)
+        const impressionEvents = l1.slice(0, request.limit).map((match) => ({
+          event_type: 'query_impression' as const,
+          point_id: match.id,
+          memory_tier: typeof match.payload?.memory_tier === 'string' ? match.payload.memory_tier : 'default',
+        }))
+        if (impressionEvents.length > 0) {
+          void api.recordInteractions(
+            { session_id: sessionId, events: impressionEvents },
+            { correlationId },
+          )
+        }
         uiLogHandlerEnd('runSearch', correlationId, performance.now() - t0, true, {
           matches: response.matches.length,
+          layer1: l1.length,
+          layer2: l2.length,
           latency_ms: response.analytics.latency_ms,
         })
       } catch (err) {
@@ -269,7 +291,7 @@ function App() {
 
       <section className="grid grid-3">
         <article className="panel">
-          <h2>{SECTION.l0Corpus}</h2>
+          <h2>{SECTION.l1Corpus}</h2>
           <p>Documents: {summary?.sources_count ?? 0}</p>
           <p>Chunks: {summary?.chunks_count ?? 0}</p>
           <p>Vectors: {summary?.vectors_count ?? 0}</p>
@@ -282,7 +304,7 @@ function App() {
           <p>Top score: {analytics?.top_score?.toFixed(3) ?? '0.000'}</p>
         </article>
         <article className="panel">
-          <h2>{SECTION.l0Ingest}</h2>
+          <h2>{SECTION.l1Ingest}</h2>
           <label className="field">
             {ingestWholeDirectory ? 'Source directory' : 'Source file'}
             <input
@@ -448,7 +470,7 @@ function App() {
 
       <section className="grid grid-2">
         <article className="panel chart-panel">
-          <h2>{SECTION.l0FileTypes}</h2>
+          <h2>{SECTION.l1FileTypes}</h2>
           <ResponsiveContainer width="100%" height={260}>
             <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
               <Pie
@@ -468,7 +490,7 @@ function App() {
           </ResponsiveContainer>
         </article>
         <article className="panel chart-panel">
-          <h2>{SECTION.l0TopSources}</h2>
+          <h2>{SECTION.l1TopSources}</h2>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={sourceChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
@@ -485,7 +507,7 @@ function App() {
         <h2>{SECTION.exploration3d}</h2>
         <p className="small">
           {PRODUCT_NAME} exploration surface — Plotly <code>scatter3d</code> over{' '}
-          <code>MultivariatePoint[]</code>. Layer 0 corpus drives live axes; an empty corpus shows
+          <code>MultivariatePoint[]</code>. Layer 1 corpus drives live axes; an empty corpus shows
           a synthetic helix until you ingest sources and run queries that shape the memory layer.
         </p>
         <ChartErrorBoundary
@@ -505,11 +527,30 @@ function App() {
       <section className="panel">
         <h2>{SECTION.queryResults}</h2>
         <div className="results">
-          {matches.length === 0 && (
-            <p className="small">No query results yet — run a query to feed the reactive memory layer.</p>
+          <h3>{SECTION.layer1Hits}</h3>
+          {layer1Matches.length === 0 && (
+            <p className="small">No Layer 1 hits yet — run a query to retrieve raw corpus chunks.</p>
           )}
-          {matches.map((match) => (
-            <article key={match.id} className="result-card">
+          {layer1Matches.map((match) => (
+            <article
+              key={`l1-${match.id}`}
+              className="result-card"
+              onClick={() => {
+                void api.recordInteractions({
+                  session_id: sessionId,
+                  events: [
+                    {
+                      event_type: 'result_click',
+                      point_id: match.id,
+                      memory_tier:
+                        typeof match.payload?.memory_tier === 'string'
+                          ? match.payload.memory_tier
+                          : 'default',
+                    },
+                  ],
+                })
+              }}
+            >
               <div className="result-head">
                 <span className="badge">Score: {match.score.toFixed(4)}</span>
                 <span className="badge">{match.file_type ?? 'unknown'}</span>
@@ -517,13 +558,56 @@ function App() {
               </div>
               <p className="mono">{match.source_path}</p>
               <p>{match.content_preview || match.text || ''}</p>
-              <details>
+              <details
+                onToggle={(ev) => {
+                  if ((ev.target as HTMLDetailsElement).open) {
+                    void api.recordInteractions({
+                      session_id: sessionId,
+                      events: [
+                        {
+                          event_type: 'result_expand',
+                          point_id: match.id,
+                          memory_tier:
+                            typeof match.payload?.memory_tier === 'string'
+                              ? match.payload.memory_tier
+                              : 'default',
+                        },
+                      ],
+                    })
+                  }
+                }}
+              >
                 <summary>Full text and metadata</summary>
                 <pre>{match.text}</pre>
                 <pre>{JSON.stringify(match.payload, null, 2)}</pre>
               </details>
             </article>
           ))}
+
+          <h3>{SECTION.layer2Boosted}</h3>
+          {layer2Matches.length === 0 && (
+            <p className="small">No Layer 2 boosted hits yet — interact with results to accumulate boosts.</p>
+          )}
+          {layer2Matches.map((match) => (
+            <article key={`l2-${match.id}`} className="result-card">
+              <div className="result-head">
+                <span className="badge">Fused: {match.score.toFixed(4)}</span>
+                {match.cosine_score != null && (
+                  <span className="badge">Cosine: {match.cosine_score.toFixed(4)}</span>
+                )}
+                {match.hit_count != null && (
+                  <span className="badge">Hits: {match.hit_count.toFixed(1)}</span>
+                )}
+                <span className="badge">{match.file_type ?? 'unknown'}</span>
+              </div>
+              <p className="mono">{match.source_path}</p>
+              <p>{match.content_preview || match.text || ''}</p>
+            </article>
+          ))}
+
+          {matches.length === 0 && layer1Matches.length === 0 && (
+            <p className="small">No query results yet — run a query to feed the reactive memory layer.</p>
+          )}
         </div>
       </section>
     </main>

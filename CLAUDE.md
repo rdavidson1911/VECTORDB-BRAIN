@@ -2,7 +2,7 @@
 
 ## 1. Project Identity
 
-OmniKB (repo: VECTORDB-BRAIN) is a local, offline-first vector knowledge base running on Windows 11 Pro via Docker Desktop. The backend is a **FastAPI** service (`src/omnikb/`) that ingests `.md`, `.txt`, and `.pdf` documents, chunks and embeds them using **sentence-transformers**, and stores vectors in **Qdrant** for semantic retrieval. A **React/Vite** single-page app (`web/`) provides an interactive query console. All services are wired together with **Docker Compose** and bind-mount the corpus from the host into the API container. The system is designed to evolve beyond naive RAG toward a layered knowledge architecture (raw corpus → session artifacts → relationship graph), though only Layer 1 (ingest + query) is currently implemented.
+OmniKB (repo: VECTORDB-BRAIN) is a local, offline-first vector knowledge base running on Windows 11 Pro via Docker Desktop. The backend is a **FastAPI** service (`src/omnikb/`) that ingests `.md`, `.txt`, and `.pdf` documents, chunks and embeds them using **sentence-transformers**, and stores vectors in **Qdrant** for semantic retrieval. A **React/Vite** single-page app (`web/`) provides an interactive query console. All services are wired together with **Docker Compose** and bind-mount the corpus from the host into the API container. The system is designed to evolve beyond naive RAG toward a layered knowledge architecture (raw corpus → session/interaction memory → relationship graph). Layer 1 (ingest + query) is implemented; Layer 2 interaction boosts and Layer 3 idle-dreaming edges (ADR 0002/0003) are implemented in SQLite alongside the still-planned session-artifact store (ADR 0001).
 
 ---
 
@@ -192,10 +192,10 @@ Format: `docs/decisions/NNNN-short-title.md`
 | Layer | Status |
 |-------|--------|
 | **Layer 1** — raw corpus, ingest pipeline, query API, React console | **IMPLEMENTED** |
-| **Layer 2** — session artifacts, interpretations, cache | **PLANNED** — not built |
-| **Layer 3** — relationship graph, consistency scoring, audit trails | **PLANNED** — not built |
-| **Dreaming process** — background reconciliation job | **PLANNED** — not built |
+| **Layer 2** — interaction boosts (`interactions.db`, `POST /interactions/events`) | **IMPLEMENTED** (ADR 0002); session artifacts store (ADR 0001) still planned |
+| **Layer 3** — relationship edges from idle dreaming | **IMPLEMENTED** (pairwise cosine edges; HDBSCAN concept nodes still planned) |
+| **Dreaming process** — idle / explicit consolidation runner | **IMPLEMENTED** via `POST /consolidation/run` + `DreamingService` |
 
-Note: `QueryRequest` in `src/omnikb/api/schemas.py` already includes `include_neighbors` and `neighbor_window` fields, but the route/service implementations do not yet expand results by neighbors or perform multi-layer traversal. Treat these as planned behavior until implemented.
+Note: `QueryRequest` supports `include_neighbors` / `neighbor_window` and `include_layer3`. Neighbor expansion is wired when requested; Layer 3 relations load from `relationship_edges` when `include_layer3=true`.
 
 See `docs/implementation-roadmap-layered-architecture.md` for phased delivery plans and test criteria.

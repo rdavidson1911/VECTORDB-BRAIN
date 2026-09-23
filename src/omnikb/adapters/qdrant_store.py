@@ -23,6 +23,24 @@ class VectorRecord:
     payload: dict[str, Any]
 
 
+def _as_dense_vector(vector: object) -> list[float] | None:
+    """Normalize Qdrant vector payloads (plain list or named-vector dict) to floats."""
+    if isinstance(vector, dict):
+        for value in vector.values():
+            nested = _as_dense_vector(value)
+            if nested is not None:
+                return nested
+        return None
+    if isinstance(vector, list):
+        values: list[float] = []
+        for item in vector:
+            if isinstance(item, bool) or not isinstance(item, int | float):
+                return None
+            values.append(float(item))
+        return values
+    return None
+
+
 class QdrantStore:
     def __init__(
         self,
@@ -153,6 +171,61 @@ class QdrantStore:
             }
             for hit in hits
         ]
+
+    def retrieve_vectors(self, point_ids: list[str]) -> dict[str, list[float]]:
+        """Fetch dense vectors for point IDs (missing IDs omitted)."""
+        if not point_ids:
+            return {}
+        points = self.client.retrieve(
+            collection_name=self.collection,
+            ids=point_ids,
+            with_payload=False,
+            with_vectors=True,
+        )
+        out: dict[str, list[float]] = {}
+        for point in points:
+            vector = point.vector
+            dense = _as_dense_vector(vector)
+            if dense is not None:
+                out[str(point.id)] = dense
+        return out
+
+    def get_neighbor_chunks(
+        self,
+        *,
+        document_id: str,
+        chunk_index: int,
+        window: int,
+        exclude_point_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return adjacent chunks for the same document_id within ±window."""
+        if window <= 0:
+            return []
+        low = max(0, chunk_index - window)
+        high = chunk_index + window
+        must = [
+            FieldCondition(key="document_id", match=MatchValue(value=document_id)),
+            FieldCondition(key="chunk_index", range=Range(gte=low, lte=high)),
+        ]
+        points, _ = self.client.scroll(
+            collection_name=self.collection,
+            scroll_filter=Filter(must=cast(Any, must)),
+            limit=max(8, window * 4 + 2),
+            with_payload=True,
+            with_vectors=False,
+        )
+        results: list[dict[str, Any]] = []
+        for point in points:
+            pid = str(point.id)
+            if exclude_point_id and pid == exclude_point_id:
+                continue
+            payload = dict(point.payload or {})
+            idx = payload.get("chunk_index")
+            if idx is None:
+                continue
+            results.append({"id": pid, "score": 0.0, "payload": payload, "is_neighbor": True})
+        results.sort(key=lambda row: int((row.get("payload") or {}).get("chunk_index") or 0))
+        return results
 
     def health(self) -> bool:
         try:
