@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from omnikb.adapters.document_loader import discover_files
 from omnikb.api.schemas import (
     ChunkPreview,
+    ConceptHit,
+    ConceptListResponse,
     ConsolidationRunRequest,
     ConsolidationRunResponse,
     ConsolidationStatusResponse,
@@ -316,6 +318,41 @@ def consolidation_status(
         finished_at=job.finished_at,
         message=job.message,
         error=job.error,
+    )
+
+
+@router.get("/relations/concepts")
+def list_concepts(
+    min_size: int = 2,
+    edge_limit: int = 500,
+    state: AppState = Depends(get_app_state),
+) -> ConceptListResponse:
+    """Layer 3 concept nodes from connected components of dreaming edges (pre-HDBSCAN)."""
+    if min_size < 2:
+        raise HTTPException(status_code=400, detail="min_size must be >= 2")
+    if edge_limit < 1 or edge_limit > 5000:
+        raise HTTPException(status_code=400, detail="edge_limit must be 1..5000")
+    concepts = state.concept_service.list_concepts(
+        min_component_size=min_size,
+        edge_limit=edge_limit,
+    )
+    edges = state.interaction_service.store.list_edges(
+        score_version=None,
+        limit=edge_limit,
+    )
+    return ConceptListResponse(
+        concepts=[
+            ConceptHit(
+                concept_id=c.concept_id,
+                member_point_ids=list(c.member_point_ids),
+                edge_count=c.edge_count,
+                mean_score=c.mean_score,
+                score_version=c.score_version,
+                builder=c.builder,
+            )
+            for c in concepts
+        ],
+        edge_count=len(edges),
     )
 
 

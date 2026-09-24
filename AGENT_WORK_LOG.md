@@ -1,4 +1,4 @@
-﻿# AGENT WORK LOG — VECTORDB-BRAIN
+# AGENT WORK LOG — VECTORDB-BRAIN
 
 Append-only log. Never rewrite history. Format per entry:
 `[YYYY-MM-DD HH:MM] [AGENT] [ACTION]: summary`
@@ -19,6 +19,8 @@ _All five architecture decisions from AGENT_ORCHESTRATION_PLAN §10 are recorded
 ---
 
 ## Log
+
+[2026-09-24] [L2/L3] [COMPLETE]: Next Layer 3 slice — typed ConceptNode + connected-components builder, GET /relations/concepts, idle consolidation reason respects DREAMING_IDLE_MINUTES (force_dreaming=False). Branch feature/layer3-edges-next stacked on #21.
 
 [2026-09-24] [ORCHESTRATOR] [COMPLETE]: Published Design A as PR #20; closed PR #11 (BM25 salvage later). Cut `feature/orchestration-and-layer3-edges`: Layer 3 relations UI + consolidation run button; consolidation↔dreaming test; agent roster docs + backlog updated (Design A winner).
 

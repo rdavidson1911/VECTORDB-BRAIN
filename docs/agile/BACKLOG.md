@@ -18,7 +18,7 @@ North star: layered memory for Learn2EarnDAO as a curated source of truth.
 |---|---|---|
 | **L1** | Unmodified source corpus | Gate + ingest done |
 | **L2** | Interaction memory (`interactions.db`, boost fusion) | **In PR #20** (Design A / ADR 0002) |
-| **L3** | Dreaming relationship edges | Edges + consolidation wired; UI surface in progress; HDBSCAN Phase 2 |
+| **L3** | Dreaming relationship edges | Edges + UI; concept connected-components slice; HDBSCAN Phase 2 |
 
 **L2 design fork — RESOLVED 2026-09-24:** Design A (interaction/boost/dreaming) won.
 PR #11 closed. BM25 deferred into future fusion — not a second store/API.
@@ -50,8 +50,9 @@ Curated Layer-1 corpus alignment for Learn2EarnDAO.
 | ID | Epic | Story | Status |
 |---|---|---|---|
 | S1 | E1 | Reconcile L2 design: Design A vs PR #11 | **Done** — Design A / PR #20; #11 closed |
-| S2 | E1 | Surface Layer 3 edges in API/UI (no HDBSCAN) | In progress on `feature/orchestration-and-layer3-edges` |
-| S3 | E2 | Land Cursor roster (frontend, code-writer, code-reviewer, agile-coordinator) | In progress |
+| S2 | E1 | Surface Layer 3 edges in API/UI (no HDBSCAN) | **Done** in PR #21 |
+| S2b | E1 | Concept nodes from connected components of edges (pre-HDBSCAN) | **Done** in PR (feature/layer3-edges-next) |
+| S3 | E2 | Land Cursor roster (frontend, code-writer, code-reviewer, agile-coordinator) | **Done** in PR #21 |
 | S4 | E2 / arch | ADR mapping MMVM → hexagonal + three-tier (no MMVM invent) | Open |
 | S5 | ops | Reconcile git remotes (`github` vs `origin`) | Decision needed — do not execute in agent sessions |
 | S6 | E3 | Use Learn2EarnDAO L1 SoT note as planning input (path only) | Open |
@@ -68,6 +69,7 @@ Append-only. Entry format (one row per entry):
 |------|------|----------|---------|------|
 | 2026-09-24 | orchestrator | S1 | not measured | Published PR #20; closed #11 |
 | 2026-09-24 | orchestrator | S2/S3 | not measured | Layer 3 UI + agent roster commit |
+| 2026-09-24 | l2-l3 | S2b | not measured | Concept connected-components + idle gate + GET /relations/concepts |
 
 <!-- FORMAT SAMPLE (not real time — do not treat as logged work):
 | 2026-01-01 | agile-coordinator | S0 | 0 | format sample; not measured work |

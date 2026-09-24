@@ -10,6 +10,7 @@ from omnikb.config.host_paths import canonical_data_sources_path, resolve_host_s
 from omnikb.config.settings import Settings, get_settings
 from omnikb.consolidation.trigger import ConsolidationTriggerService
 from omnikb.curation.validate import CurationPolicy
+from omnikb.services.concept_service import ConceptService
 from omnikb.services.dreaming_service import DreamingService
 from omnikb.services.ingestion_service import IngestionService
 from omnikb.services.interaction_service import InteractionService
@@ -25,6 +26,7 @@ class AppState:
     consolidation_service: ConsolidationTriggerService
     interaction_service: InteractionService
     dreaming_service: DreamingService
+    concept_service: ConceptService
 
 
 def build_state() -> AppState:
@@ -38,6 +40,7 @@ def build_state() -> AppState:
     embedder = SentenceTransformerEmbedder(model_name=settings.embedding_model)
     interaction_store = InteractionStore(Path(settings.interactions_db_path))
     interaction_service = InteractionService(interaction_store)
+    concept_service = ConceptService(interaction_store)
     dreaming_service = DreamingService(
         store=store,
         interaction_store=interaction_store,
@@ -78,10 +81,12 @@ def build_state() -> AppState:
             enabled=settings.consolidation_enabled,
             min_chunk_threshold=settings.consolidation_min_chunk_threshold,
             dreaming_runner=dreaming_service.run,
-            force_dreaming=True,
+            # Explicit reason != "idle" still forces; reason="idle" respects idle gate.
+            force_dreaming=False,
         ),
         interaction_service=interaction_service,
         dreaming_service=dreaming_service,
+        concept_service=concept_service,
     )
 
 
