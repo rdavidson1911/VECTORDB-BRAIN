@@ -13,11 +13,18 @@ Action types: DISPATCH | COMPLETE | BLOCKED | ESCALATE | HUMAN_DECISION_REQUIRED
 
 _All five architecture decisions from AGENT_ORCHESTRATION_PLAN §10 are recorded in `docs/agents/NAMING_DECISION.md` (commit c078704)._
 
-_(No open human decisions.)_
+1. **L2 design fork:** **RESOLVED 2026-09-24** — Design A (interaction/boost/dreaming, ADRs 0002/0003) via PR #20; PR #11 closed. BM25 deferred.
+2. **Git remotes / branch divergence:** `github` (https://github.com/rdavidson1911/VECTORDB-BRAIN.git) vs `origin` (`H:/repos.d/vectordb-brain`) — decision needed; agents must not reconcile.
 
 ---
 
 ## Log
+
+[2026-09-24] [ORCHESTRATOR] [COMPLETE]: Published Design A as PR #20; closed PR #11 (BM25 salvage later). Cut `feature/orchestration-and-layer3-edges`: Layer 3 relations UI + consolidation run button; consolidation↔dreaming test; agent roster docs + backlog updated (Design A winner).
+
+[2026-09-23] [ORCHESTRATOR] [COMPLETE]: Cursor orchestration extension (docs + local wrappers only). Added roles: frontend, code-writer, code-reviewer (extends code-quality; both names resolve), agile-coordinator. Tracking: `docs/agile/BACKLOG.md` (E1 layered memory / L2 fork blocked; E2 orchestration; E3 Learn2EarnDAO path-only; stories S1–S6; time log empty — duration not measured). Updated orchestrator dispatch roster + hard rule: no L2/L3 product work until ADR-0001 vs PR #11 winner is recorded. No product code, no commit, no push. Time not measured.
+
+[2026-08-10 02:30] [ORCHESTRATOR] [COMPLETE]: Multi-layer memory phase (Cursor control plane). ADR 0001/0002; Layer 0→1 branding; SQLite interactions + boost fusion; idle dreaming edges; React dual sections; `.cursor/agents/*` + curated validate hook; `_samples` + curated seed note; pytest coverage for boost/dreaming.
 
 [2026-06-19 12:00] [ORCHESTRATOR] [DISPATCH]: Cursor orchestrator resume session. Audited 9 worktrees under .claude/worktrees/; agent/* branches 0 commits ahead of main — deliverables on test/quality-review (+3 vs c4cb386). l2-schema-design-draft clean (Option C). Resume backlog: embedding bench BLOCKED; Qdrant migration review; L2 episodic stub; Haiku digest 2026-06-19.
 

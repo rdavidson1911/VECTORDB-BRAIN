@@ -41,6 +41,7 @@ import type {
   IngestPathResponse,
   QueryMatch,
   QueryRequest,
+  RelationHit,
   SearchAnalytics,
   SourceSummary,
 } from './types'
@@ -74,7 +75,10 @@ function App() {
   const [matches, setMatches] = useState<QueryMatch[]>([])
   const [layer1Matches, setLayer1Matches] = useState<QueryMatch[]>([])
   const [layer2Matches, setLayer2Matches] = useState<QueryMatch[]>([])
+  const [layer3Relations, setLayer3Relations] = useState<RelationHit[]>([])
   const [sessionId] = useState(() => newCorrelationId())
+  const [dreamingBusy, setDreamingBusy] = useState(false)
+  const [dreamingStatus, setDreamingStatus] = useState('')
   const [analytics, setAnalytics] = useState<SearchAnalytics | null>(null)
   const [error, setError] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -152,9 +156,11 @@ function App() {
         const response = await api.query(request, { correlationId })
         const l1 = response.layer1_matches ?? response.matches
         const l2 = response.layer2_boosted_matches ?? response.matches
+        const l3 = response.layer3_relations ?? []
         setMatches(response.matches)
         setLayer1Matches(l1)
         setLayer2Matches(l2)
+        setLayer3Relations(l3)
         setAnalytics(response.analytics)
         const impressionEvents = l1.slice(0, request.limit).map((match) => ({
           event_type: 'query_impression' as const,
@@ -171,6 +177,7 @@ function App() {
           matches: response.matches.length,
           layer1: l1.length,
           layer2: l2.length,
+          layer3: l3.length,
           latency_ms: response.analytics.latency_ms,
         })
       } catch (err) {
@@ -180,6 +187,49 @@ function App() {
         })
       } finally {
         setLoading(false)
+      }
+    })
+  }
+
+  async function runDreaming() {
+    if (dreamingBusy || loading) return
+    const correlationId = newCorrelationId()
+    await withCorrelation(correlationId, async () => {
+      uiLogHandlerStart('runDreaming', correlationId)
+      const t0 = performance.now()
+      setDreamingBusy(true)
+      setDreamingStatus('Submitting consolidation / dreaming run…')
+      setError('')
+      try {
+        const accepted = await api.runConsolidation(
+          { dry_run: false, reason: 'manual_ui' },
+          { correlationId },
+        )
+        setDreamingStatus(`Job ${accepted.job_id.slice(0, 8)}… ${accepted.status}`)
+        let finalMessage = accepted.status
+        for (let i = 0; i < 50; i += 1) {
+          await new Promise((r) => setTimeout(r, 100))
+          const status = await api.getConsolidationStatus(accepted.job_id, { correlationId })
+          if (status.status === 'completed' || status.status === 'failed') {
+            finalMessage = status.message ?? status.error ?? status.status
+            setDreamingStatus(finalMessage)
+            if (status.status === 'failed') {
+              throw new Error(finalMessage)
+            }
+            break
+          }
+          setDreamingStatus(`Job ${accepted.job_id.slice(0, 8)}… ${status.status}`)
+        }
+        uiLogHandlerEnd('runDreaming', correlationId, performance.now() - t0, true, {
+          message: finalMessage,
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Dreaming run failed.')
+        uiLogHandlerEnd('runDreaming', correlationId, performance.now() - t0, false, {
+          error: err instanceof Error ? err.message : 'unknown',
+        })
+      } finally {
+        setDreamingBusy(false)
       }
     })
   }
@@ -526,6 +576,16 @@ function App() {
 
       <section className="panel">
         <h2>{SECTION.queryResults}</h2>
+        <div className="row" style={{ marginBottom: '0.75rem', gap: '0.75rem', alignItems: 'center' }}>
+          <button type="button" onClick={() => void runDreaming()} disabled={dreamingBusy || loading}>
+            {dreamingBusy ? 'Dreaming…' : 'Run Layer 3 dreaming'}
+          </button>
+          {dreamingStatus && <span className="small mono">{dreamingStatus}</span>}
+        </div>
+        <p className="small">
+          Dreaming builds pairwise relationship edges among boosted Layer 1 chunks (ADR 0002). Re-run
+          a query afterward to populate the Layer 3 section.
+        </p>
         <div className="results">
           <h3>{SECTION.layer1Hits}</h3>
           {layer1Matches.length === 0 && (
@@ -602,6 +662,29 @@ function App() {
               </div>
               <p className="mono">{match.source_path}</p>
               <p>{match.content_preview || match.text || ''}</p>
+            </article>
+          ))}
+
+          <h3>{SECTION.layer3Relations}</h3>
+          {layer3Relations.length === 0 && (
+            <p className="small">
+              No Layer 3 edges yet — interact with results, run dreaming, then query again with
+              Layer 3 enabled.
+            </p>
+          )}
+          {layer3Relations.map((edge) => (
+            <article
+              key={`l3-${edge.src_point_id}-${edge.dst_point_id}-${edge.score_version}`}
+              className="result-card"
+            >
+              <div className="result-head">
+                <span className="badge">Score: {edge.score.toFixed(4)}</span>
+                <span className="badge">{edge.score_version}</span>
+              </div>
+              <p className="mono">
+                {edge.src_point_id} → {edge.dst_point_id}
+              </p>
+              <p className="small">Created {edge.created_at}</p>
             </article>
           ))}
 
