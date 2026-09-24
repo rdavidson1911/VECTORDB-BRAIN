@@ -98,6 +98,20 @@ class RelationHit(BaseModel):
     created_at: str
 
 
+class ConceptHit(BaseModel):
+    concept_id: str
+    member_point_ids: list[str]
+    edge_count: int
+    mean_score: float
+    score_version: str
+    builder: str
+
+
+class ConceptListResponse(BaseModel):
+    concepts: list[ConceptHit]
+    edge_count: int
+
+
 class SearchAnalytics(BaseModel):
     latency_ms: float
     returned_count: int

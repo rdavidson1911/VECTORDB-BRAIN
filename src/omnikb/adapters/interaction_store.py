@@ -257,6 +257,33 @@ class InteractionStore:
             for row in rows
         ]
 
+    def list_edges(
+        self, *, score_version: str | None = None, limit: int = 500
+    ) -> list[RelationshipEdge]:
+        """Return relationship edges ordered by score (Layer 3 catalog)."""
+        params: list[Any] = []
+        sql = (
+            "SELECT src_point_id, dst_point_id, score, score_version, created_at "
+            "FROM relationship_edges"
+        )
+        if score_version:
+            sql += " WHERE score_version = ?"
+            params.append(score_version)
+        sql += " ORDER BY score DESC LIMIT ?"
+        params.append(limit)
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+        return [
+            RelationshipEdge(
+                src_point_id=str(row["src_point_id"]),
+                dst_point_id=str(row["dst_point_id"]),
+                score=float(row["score"]),
+                score_version=str(row["score_version"]),
+                created_at=str(row["created_at"]),
+            )
+            for row in rows
+        ]
+
 
 def boost_norm(hit_count: float, hit_count_max: float) -> float:
     if hit_count <= 0:
