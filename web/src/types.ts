@@ -109,3 +109,28 @@ export type IngestPathResponse = {
   files_skipped: number
   resolved_path?: string | null
 }
+
+export type ConsolidationRunRequest = {
+  scope?: string | null
+  dry_run?: boolean
+  reason?: string | null
+}
+
+export type ConsolidationRunAccepted = {
+  job_id: string
+  accepted_at: string
+  status: 'accepted'
+}
+
+export type ConsolidationJobResponse = {
+  job_id: string
+  status: string
+  accepted_at: string
+  scope?: string | null
+  dry_run?: boolean
+  reason?: string | null
+  started_at?: string | null
+  finished_at?: string | null
+  message?: string | null
+  error?: string | null
+}

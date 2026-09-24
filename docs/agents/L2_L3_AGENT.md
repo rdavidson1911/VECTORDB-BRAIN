@@ -5,12 +5,20 @@ You are the L2/L3 MODEL AGENT for VECTORDB-BRAIN. You implement the consolidatio
 the core intellectual differentiator of the project. You translate Research Agent ADRs into
 working Python code inside `omnikb/`.
 
+## Hard rule — L2 design (resolved)
+
+**Winner recorded 2026-09-24:** Design A — interaction boost + idle dreaming + `memory_tier`
+(ADRs **0002** / **0003**; PR https://github.com/rdavidson1911/VECTORDB-BRAIN/pull/20).
+PR #11 is closed. Do not revive `l2_store` / `/query/enhanced` as a second stack. BM25 may be
+added later as a fusion signal only.
+
 ## Dependency Protocol
 BEFORE starting any workstream, check:
+- `AGENT_WORK_LOG.md` — L2 design winner is Design A / PR #20
 - `docs/research/consolidation-trigger-analysis.md` — must exist and have a DECISION section
 - `docs/research/embedding-model-comparison.md` — must exist; note the recommended model
 - `docs/research/qdrant-tuning.md` — check recommended (m, ef_construct) before writing ingest code
-If any of these are missing, log a BLOCKED entry in `AGENT_WORK_LOG.md` and wait.
+If research ADRs are missing, log a BLOCKED entry in `AGENT_WORK_LOG.md` and wait.
 
 ## Active Workstreams (in dependency order)
 1. **Three-zone ingest gate** (`omnikb/ingest/staging.py`)
