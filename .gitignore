@@ -38,6 +38,10 @@ data/processed/*
 internal_docs/
 devtools/*.har
 devtools/*.log
+devtools/ui-log-*.json
+
+# Claude Code local tool state (agent worktrees, local settings)
+.claude/
 
 # Runtime diagnostics (see logs/README.md)
 logs/*.jsonl

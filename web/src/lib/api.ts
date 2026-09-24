@@ -6,11 +6,15 @@ import {
   getActiveCorrelationId,
 } from '../logging/uiLogger'
 import type {
+  ConsolidationJobResponse,
+  ConsolidationRunAccepted,
+  ConsolidationRunRequest,
   CorpusSummary,
   HealthResponse,
   IngestFileRequest,
   IngestPathRequest,
   IngestPathResponse,
+  InteractionEventsRequest,
   QueryRequest,
   QueryResponse,
   SourceSummary,
@@ -77,6 +81,27 @@ export const api = {
       '/query',
       { method: 'POST', body: JSON.stringify(body) },
       { ...ctx, label: ctx?.label ?? 'search.query' },
+    )
+  },
+  recordInteractions(body: InteractionEventsRequest, ctx?: ApiRequestContext) {
+    return requestJson<{ accepted: number }>(
+      '/interactions/events',
+      { method: 'POST', body: JSON.stringify(body) },
+      { ...ctx, label: ctx?.label ?? 'interactions.events' },
+    )
+  },
+  runConsolidation(body: ConsolidationRunRequest, ctx?: ApiRequestContext) {
+    return requestJson<ConsolidationRunAccepted>(
+      '/consolidation/run',
+      { method: 'POST', body: JSON.stringify(body) },
+      { ...ctx, label: ctx?.label ?? 'consolidation.run' },
+    )
+  },
+  getConsolidationStatus(jobId: string, ctx?: ApiRequestContext) {
+    return requestJson<ConsolidationJobResponse>(
+      `/consolidation/status/${encodeURIComponent(jobId)}`,
+      undefined,
+      { ...ctx, label: ctx?.label ?? 'consolidation.status' },
     )
   },
   ingestPath(body: IngestPathRequest, ctx?: ApiRequestContext) {

@@ -19,6 +19,7 @@ from omnikb.curation.validate import (
     validate_ingest_files,
 )
 from omnikb.domain.chunking import ChunkingConfig, chunk_text
+from omnikb.domain.memory_tier import assign_memory_tier
 from omnikb.domain.path_safety import assert_ingest_file_target, resolve_ingest_path
 
 
@@ -147,11 +148,12 @@ class IngestionService:
 
         for idx, (chunk_value, vector) in enumerate(zip(chunks, vectors, strict=True)):
             point_id = str(uuid5(NAMESPACE_URL, f"{doc.source_path}:{doc.content_hash}:{idx}"))
+            file_type = path.suffix.lower().lstrip(".")
             payload = {
                 "document_id": document_id,
                 "chunk_index": idx,
                 "source_path": doc.source_path,
-                "file_type": path.suffix.lower().lstrip("."),
+                "file_type": file_type,
                 "content_hash": doc.content_hash,
                 "source_size_bytes": doc.source_size_bytes,
                 "content_preview": chunk_value[:240],
@@ -166,6 +168,7 @@ class IngestionService:
                 "embedding_model": self.embedding_model,
                 "pipeline_version": self.pipeline_version,
                 "normalization_profile": self.normalization_profile,
+                "memory_tier": assign_memory_tier(doc.source_path, file_type),
             }
             records.append(VectorRecord(point_id=point_id, vector=vector, payload=payload))
 

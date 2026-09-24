@@ -7,6 +7,43 @@
 
 ---
 
+## Cursor control plane (current)
+
+As of 2026-08-10, orchestration runs in **Cursor** (parent agent + Task subagents + `.cursor/agents/*` + skills/hooks), not the Claude Code Agents Window. Roster extended 2026-09-23.
+
+| Role | Cursor mechanism |
+|---|---|
+| Orchestrator | Parent chat / `.cursor/agents/orchestrator.md` |
+| Research | `.cursor/agents/research.md` + `canvas` skill |
+| Code quality | `.cursor/agents/code-quality.md` + quality gates (lint/types PRs) |
+| Code reviewer | `.cursor/agents/code-reviewer.md` — review-only extension of code-quality; never merges |
+| Code writer | `.cursor/agents/code-writer.md` — `src/omnikb` impl except qdrant schema + L2/L3 |
+| Frontend | `.cursor/agents/frontend.md` — `web/` React/Vite console only |
+| Agile coordinator | `.cursor/agents/agile-coordinator.md` — `docs/agile/BACKLOG.md` + time log |
+| Qdrant | `.cursor/agents/qdrant.md` |
+| L2/L3 | `.cursor/agents/l2-l3.md` + `kb-creator` skill |
+| Utility | `.cursor/hooks.json` (`validate-curated-corpus.ps1`) + `loop`/`automate` |
+
+### Hard rule — L2/L3 design (resolved 2026-09-24)
+
+**Winner:** Design A — interaction boost + idle dreaming + `memory_tier` (ADRs **0002** / **0003**).
+Landed in PR https://github.com/rdavidson1911/VECTORDB-BRAIN/pull/20.
+PR #11 (`l2_store` / `/query/enhanced` / BM25) is **closed** — salvage BM25 later into fusion only;
+do **not** ship a second L2 store/API.
+
+Canonical layer numbering:
+- **L1** = unmodified source corpus (curated provenance into Qdrant)
+- **L2** = interaction memory (`interactions.db`, boost fusion)
+- **L3** = durable relationship / dreaming edges (`relationship_edges`)
+
+Do not treat “L1 = working memory” as canonical. Published ADR **0001** remains the *session-store
+schema* (future artifacts); it is not replaced by 0002/0003.
+
+Keep appending to `AGENT_WORK_LOG.md`. Delivery tracking: `docs/agile/BACKLOG.md`.
+Claude model-tier roster below is **historical** reference for prompts in `docs/agents/`.
+
+---
+
 ## 0. Branch Creation — Run These Commands First
 
 ```bash
@@ -32,9 +69,9 @@ VECTORDB-BRAIN's goal is a **layered episodic-memory RAG architecture** where re
 
 | Layer | Description |
 |---|---|
-| **L1 — Working Memory** | In-flight ingest, raw embedding, staging buffer |
-| **L2 — Episodic Store** | Qdrant collections with structured metadata, consolidation-gated |
-| **L3 — Semantic Consolidation** | Cross-document relationship graph, concept-level abstraction |
+| **L1 — Raw corpus** | Unmodified curated sources; ingest + provenance into Qdrant (`omnikb_documents`) |
+| **L2 — Interaction memory** | SQLite interaction events + boost fusion (ADR 0002); session artifacts (ADR 0001) still planned |
+| **L3 — Dreaming edges** | Pairwise relationship edges among boosted chunks; HDBSCAN concept nodes remain Phase 2 |
 | **API/UI Layer** | FastAPI + React/Vite serving retrieval and curation UI |
 | **Ingest Gate** | Frontmatter validation, three-zone staging, quality enforcement |
 
