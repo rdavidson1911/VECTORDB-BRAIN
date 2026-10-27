@@ -79,3 +79,22 @@ export type IngestPathResponse = {
   files_skipped: number
   resolved_path?: string | null
 }
+
+export type CurationValidateRequest = {
+  path: string
+  recursive?: boolean
+}
+
+export type CurationIssue = {
+  severity: string
+  code: string
+  message: string
+  path?: string | null
+}
+
+export type CurationValidateResponse = {
+  entries_scanned: number
+  error_count: number
+  warn_count: number
+  issues: CurationIssue[]
+}

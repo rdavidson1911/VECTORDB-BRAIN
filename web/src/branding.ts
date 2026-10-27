@@ -13,9 +13,20 @@ export const SECTION = {
   l0TopSources: 'Layer 0 · Top sources',
   exploration3d: 'Exploration · 3D multivariate',
   queryResults: 'Query results · Memory signals',
+  curationValidate: 'Curation gate · Dry-run validate',
+} as const
+
+export const NAV = {
+  query: 'Query',
+  ingest: 'Ingest',
+  corpus: 'Corpus',
+  analytics: 'Analytics',
 } as const
 
 export const ACTIONS = {
   runQuery: 'Run query',
   clearQuery: 'Clear',
+  validateGate: 'Validate gate',
+  ingestFile: 'Ingest file',
+  ingestDirectory: 'Ingest directory',
 } as const

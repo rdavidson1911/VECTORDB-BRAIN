@@ -1,0 +1,19 @@
+# Private-cloud / thin-client override for VECTORDB-BRAIN (OmniKB).
+# Honors QDRANT_URL from .env instead of pinning to the local qdrant service.
+#
+# Same host as Qdrant (default — no override):
+#   docker compose up --build -d
+#
+# API here, Qdrant elsewhere on the private network:
+#   # .env: QDRANT_URL=http://qdrant.internal:6333
+#   docker compose -f docker-compose.yml -f docker-compose.private-cloud.yml \
+#     up --build --no-deps -d api
+#
+# See docs/private-cloud-thin-client.md and docs/decisions/0002-mobile-thin-client.md.
+
+services:
+  api:
+    environment:
+      QDRANT_URL: ${QDRANT_URL}
+      DATA_SOURCES_PATH: /data/sources
+      HOST_DATA_SOURCES_PATH: ${HOST_DATA_SOURCES_PATH:-}
