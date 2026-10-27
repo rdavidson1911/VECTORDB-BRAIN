@@ -1,31 +1,11 @@
-import { startTransition, useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import {
-  axisLine,
-  axisTick,
-  barCursorFill,
-  barFill,
-  chartTooltipProps,
-  gridStroke,
-  piePalette,
-  pieSliceStroke,
-  pieSliceStrokeWidth,
-} from './chartTheme'
-import { ACTIONS, PRODUCT_NAME, PRODUCT_TAGLINE, SECTION } from './branding'
-import { Multivariate3DTemplate, type MultivariatePoint } from './charts'
-import { ChartErrorBoundary } from './components/ChartErrorBoundary'
-import { IngestPathButton } from './components/IngestPathButton'
+import { startTransition, useCallback, useEffect, useState } from 'react'
+import { AppNav, type AppTab } from './components/AppNav'
+import { CorpusPanel } from './components/CorpusPanel'
+import { AnalyticsPanel } from './components/AnalyticsPanel'
+import { HealthStrip } from './components/HealthStrip'
+import { IngestPanel } from './components/IngestPanel'
+import { QueryPanel, type QueryFormState } from './components/QueryPanel'
+import { ResultsPanel } from './components/ResultsPanel'
 import { useIngestCooldown } from './hooks/useIngestCooldown'
 import {
   newCorrelationId,
@@ -37,6 +17,7 @@ import {
 import { api } from './lib/api'
 import type {
   CorpusSummary,
+  CurationValidateResponse,
   HealthResponse,
   IngestPathResponse,
   QueryMatch,
@@ -45,14 +26,10 @@ import type {
   SourceSummary,
 } from './types'
 
-type QueryForm = QueryRequest & {
-  min_score_text: string
-}
-
 /** Block repeat ingest clicks after a successful run (ms). */
 const INGEST_SUCCESS_COOLDOWN_MS = 6000
 
-const INITIAL_QUERY: QueryForm = {
+const INITIAL_QUERY: QueryFormState = {
   query: '',
   limit: 10,
   source_path: '',
@@ -67,10 +44,11 @@ const INITIAL_QUERY: QueryForm = {
 }
 
 function App() {
+  const [activeTab, setActiveTab] = useState<AppTab>('query')
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [summary, setSummary] = useState<CorpusSummary | null>(null)
   const [sources, setSources] = useState<SourceSummary[]>([])
-  const [queryForm, setQueryForm] = useState<QueryForm>(INITIAL_QUERY)
+  const [queryForm, setQueryForm] = useState<QueryFormState>(INITIAL_QUERY)
   const [matches, setMatches] = useState<QueryMatch[]>([])
   const [analytics, setAnalytics] = useState<SearchAnalytics | null>(null)
   const [error, setError] = useState<string>('')
@@ -78,7 +56,9 @@ function App() {
   const [ingestPath, setIngestPath] = useState('')
   const [ingestWholeDirectory, setIngestWholeDirectory] = useState(false)
   const [ingestResponse, setIngestResponse] = useState<IngestPathResponse | null>(null)
+  const [validateResponse, setValidateResponse] = useState<CurationValidateResponse | null>(null)
   const [ingestBusy, setIngestBusy] = useState(false)
+  const [validateBusy, setValidateBusy] = useState(false)
   const { cooldownActive, cooldownSecondsLeft, startCooldown } = useIngestCooldown(
     INGEST_SUCCESS_COOLDOWN_MS,
   )
@@ -117,6 +97,10 @@ function App() {
     return () => window.clearTimeout(timer)
   }, [loadDashboardData])
 
+  useEffect(() => {
+    setValidateResponse(null)
+  }, [ingestPath, ingestWholeDirectory])
+
   async function runSearch() {
     const correlationId = newCorrelationId()
     uiLogInteraction('click', 'Search button', { handler: 'runSearch' }, correlationId)
@@ -147,6 +131,7 @@ function App() {
         const response = await api.query(request, { correlationId })
         setMatches(response.matches)
         setAnalytics(response.analytics)
+        setActiveTab('query')
         uiLogHandlerEnd('runSearch', correlationId, performance.now() - t0, true, {
           matches: response.matches.length,
           latency_ms: response.analytics.latency_ms,
@@ -162,8 +147,51 @@ function App() {
     })
   }
 
+  async function runValidate() {
+    const correlationId = newCorrelationId()
+    uiLogInteraction('click', 'Validate gate', { path: ingestPath }, correlationId)
+    await withCorrelation(correlationId, async () => {
+      uiLogHandlerStart('runValidate', correlationId, { path: ingestPath })
+      const t0 = performance.now()
+      setValidateBusy(true)
+      setError('')
+      try {
+        const trimmed = ingestPath.trim()
+        if (!trimmed) {
+          throw new Error('Enter a path to validate (file or directory under DATA_SOURCES_PATH).')
+        }
+        const response = await api.validateCuration(
+          { path: trimmed, recursive: ingestWholeDirectory || trimmed.endsWith('/') },
+          { correlationId },
+        )
+        setValidateResponse(response)
+        if (response.error_count > 0) {
+          setError(
+            `Curation gate: ${response.error_count} error(s), ${response.warn_count} warning(s). Fix notes before ingest.`,
+          )
+        }
+        uiLogHandlerEnd('runValidate', correlationId, performance.now() - t0, true, {
+          error_count: response.error_count,
+          warn_count: response.warn_count,
+        })
+      } catch (err) {
+        setValidateResponse(null)
+        setError(err instanceof Error ? err.message : 'Curation validate failed.')
+        uiLogHandlerEnd('runValidate', correlationId, performance.now() - t0, false, {
+          error: err instanceof Error ? err.message : 'unknown',
+        })
+      } finally {
+        setValidateBusy(false)
+      }
+    })
+  }
+
   async function runIngest() {
     if (ingestBusy || cooldownActive || loading) return
+    if ((validateResponse?.error_count ?? 0) > 0) {
+      setError('Curation gate still has errors. Re-validate after fixing source notes.')
+      return
+    }
     const correlationId = newCorrelationId()
     const mode = ingestWholeDirectory ? 'directory' : 'file'
     uiLogInteraction('click', 'Ingest button', { path: ingestPath, mode }, correlationId)
@@ -200,332 +228,61 @@ function App() {
     })
   }
 
-  const fileTypeChart = useMemo(
-    () =>
-      Object.entries(summary?.file_type_counts ?? {}).map(([name, value]) => ({
-        name,
-        value,
-      })),
-    [summary],
-  )
-
-  const sourceChart = useMemo(
-    () =>
-      sources.slice(0, 12).map((source) => ({
-        name: source.source_path.split('/').pop() ?? source.source_path,
-        chunks: source.chunk_count,
-      })),
-    [sources],
-  )
-
-  const multivariate3d = useMemo(() => {
-    const liveTitles = { x: 'Source order', y: 'Chunk count', z: 'Path length (chars)' }
-    if (sources.length > 0) {
-      const points: MultivariatePoint[] = sources.slice(0, 80).map((s, index) => ({
-        x: index,
-        y: s.chunk_count,
-        z: s.source_path.length,
-        value: s.chunk_count,
-        magnitude: Math.sqrt(s.chunk_count + 1),
-        label: s.source_path.split('/').pop() ?? s.source_path,
-        id: `${index}-${s.source_path}`,
-        meta: { chunks: s.chunk_count, path: s.source_path },
-      }))
-      return { points, axisTitles: liveTitles }
-    }
-    const demoTitles = { x: 'cos(t) · radius', y: 'sin(t) · radius', z: 'Depth' }
-    const points: MultivariatePoint[] = Array.from({ length: 48 }, (_, i) => {
-      const t = (i / 12) * Math.PI
-      const radius = 6 + (i % 3)
-      return {
-        x: Math.cos(t) * radius,
-        y: Math.sin(t) * radius,
-        z: i * 0.35,
-        value: i,
-        magnitude: 2 + (i % 6),
-        label: `synthetic-${i}`,
-        id: `synthetic-${i}`,
-        meta: { series: 'demo' },
-      }
-    })
-    return { points, axisTitles: demoTitles }
-  }, [sources])
-
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <div className="topbar-brand">
-          <h1>{PRODUCT_NAME}</h1>
-          <p className="topbar-tagline">{PRODUCT_TAGLINE}</p>
-        </div>
-        <div className="status-row">
-          <span className="badge">API: {health?.service ?? '...'}</span>
-          <span className="badge">Qdrant: {health?.qdrant ?? '...'}</span>
-          <span className="badge">Collection: {health?.collection ?? '...'}</span>
-        </div>
-      </header>
+      <HealthStrip health={health} />
+      <AppNav active={activeTab} onChange={setActiveTab} />
 
-      {error && <section className="panel error">{error}</section>}
-
-      <section className="grid grid-3">
-        <article className="panel">
-          <h2>{SECTION.l0Corpus}</h2>
-          <p>Documents: {summary?.sources_count ?? 0}</p>
-          <p>Chunks: {summary?.chunks_count ?? 0}</p>
-          <p>Vectors: {summary?.vectors_count ?? 0}</p>
-        </article>
-        <article className="panel">
-          <h2>{SECTION.reactiveQuery}</h2>
-          <p>Latency: {analytics?.latency_ms ?? 0} ms</p>
-          <p>Results: {analytics?.returned_count ?? 0}</p>
-          <p>Unique sources: {analytics?.unique_sources ?? 0}</p>
-          <p>Top score: {analytics?.top_score?.toFixed(3) ?? '0.000'}</p>
-        </article>
-        <article className="panel">
-          <h2>{SECTION.l0Ingest}</h2>
-          <label className="field">
-            {ingestWholeDirectory ? 'Source directory' : 'Source file'}
-            <input
-              value={ingestPath}
-              onChange={(e) => setIngestPath(e.target.value)}
-              placeholder={
-                ingestWholeDirectory
-                  ? '/data/sources or I:\\VECTORDB-BRAIN\\data\\sources'
-                  : '/data/sources/my-doc.md or I:\\...\\data\\sources\\my-doc.md'
-              }
-            />
-          </label>
-          <label className="field checkbox-row">
-            <input
-              type="checkbox"
-              checked={ingestWholeDirectory}
-              onChange={(e) => setIngestWholeDirectory(e.target.checked)}
-            />
-            Ingest entire directory (advanced)
-          </label>
-          <IngestPathButton
-            idleLabel={ingestWholeDirectory ? 'Ingest directory' : 'Ingest file'}
-            busy={ingestBusy}
-            cooldownActive={cooldownActive}
-            cooldownSecondsLeft={cooldownSecondsLeft}
-            disabled={loading && !ingestBusy && !cooldownActive}
-            onClick={() => void runIngest()}
-          />
-          {ingestResponse && (
-            <div className="small">
-              Seen {ingestResponse.files_seen} | Indexed {ingestResponse.files_indexed} | Skipped{' '}
-              {ingestResponse.files_skipped ?? 0} | Chunks {ingestResponse.chunks_indexed}
-              {ingestResponse.resolved_path ? (
-                <>
-                  <br />
-                  Resolved: {ingestResponse.resolved_path}
-                </>
-              ) : null}
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className="panel">
-        <h2>{SECTION.queryExplore}</h2>
-        <div className="grid grid-4">
-          <label className="field">
-            Query
-            <input
-              value={queryForm.query}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, query: e.target.value }))}
-              placeholder="Find exact text/documents of interest"
-            />
-          </label>
-          <label className="field">
-            Text contains
-            <input
-              value={queryForm.text_contains}
-              onChange={(e) =>
-                setQueryForm((prev) => ({ ...prev, text_contains: e.target.value }))
-              }
-              placeholder="post-filter text fragment"
-            />
-          </label>
-          <label className="field">
-            Source path
-            <input
-              value={queryForm.source_path}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, source_path: e.target.value }))}
-              placeholder="/data/sources/file.md"
-            />
-          </label>
-          <label className="field">
-            File type
-            <input
-              value={queryForm.file_type}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, file_type: e.target.value }))}
-              placeholder="md, txt, pdf"
-            />
-          </label>
-          <label className="field">
-            Date added from
-            <input
-              type="date"
-              value={queryForm.date_from}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, date_from: e.target.value }))}
-            />
-          </label>
-          <label className="field">
-            Date added to
-            <input
-              type="date"
-              value={queryForm.date_to}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, date_to: e.target.value }))}
-            />
-          </label>
-          <label className="field">
-            Min score
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              value={queryForm.min_score_text}
-              onChange={(e) =>
-                setQueryForm((prev) => ({ ...prev, min_score_text: e.target.value }))
-              }
-            />
-          </label>
-          <label className="field">
-            Limit
-            <input
-              type="number"
-              min="1"
-              max="50"
-              value={queryForm.limit}
-              onChange={(e) =>
-                setQueryForm((prev) => ({ ...prev, limit: Number(e.target.value || 10) }))
-              }
-            />
-          </label>
-          <label className="field">
-            Document ID
-            <input
-              value={queryForm.document_id}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, document_id: e.target.value }))}
-              placeholder="sha256(source_path)"
-            />
-          </label>
-          <label className="field">
-            Content hash
-            <input
-              value={queryForm.content_hash}
-              onChange={(e) => setQueryForm((prev) => ({ ...prev, content_hash: e.target.value }))}
-            />
-          </label>
-          <label className="field">
-            Chunk strategy
-            <input
-              value={queryForm.chunk_strategy}
-              onChange={(e) =>
-                setQueryForm((prev) => ({ ...prev, chunk_strategy: e.target.value }))
-              }
-              placeholder="recursive_char_v1"
-            />
-          </label>
-        </div>
-        <div className="actions">
-          <button onClick={() => void runSearch()} disabled={loading}>
-            {ACTIONS.runQuery}
+      {error && (
+        <section className="panel error" role="alert">
+          {error}
+          <button type="button" className="error-dismiss" onClick={() => setError('')}>
+            Dismiss
           </button>
-          <button
-            onClick={() => {
+        </section>
+      )}
+
+      {activeTab === 'query' && (
+        <>
+          <QueryPanel
+            queryForm={queryForm}
+            setQueryForm={setQueryForm}
+            analytics={analytics}
+            loading={loading}
+            onSearch={() => void runSearch()}
+            onClear={() => {
               setQueryForm(INITIAL_QUERY)
               setMatches([])
               setAnalytics(null)
             }}
-          >
-            {ACTIONS.clearQuery}
-          </button>
-        </div>
-      </section>
-
-      <section className="grid grid-2">
-        <article className="panel chart-panel">
-          <h2>{SECTION.l0FileTypes}</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-              <Pie
-                data={fileTypeChart}
-                dataKey="value"
-                nameKey="name"
-                outerRadius={90}
-                stroke={pieSliceStroke}
-                strokeWidth={pieSliceStrokeWidth}
-              >
-                {fileTypeChart.map((entry, i) => (
-                  <Cell key={entry.name} fill={piePalette[i % piePalette.length]} />
-                ))}
-              </Pie>
-              <Tooltip {...chartTooltipProps} />
-            </PieChart>
-          </ResponsiveContainer>
-        </article>
-        <article className="panel chart-panel">
-          <h2>{SECTION.l0TopSources}</h2>
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={sourceChart} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
-              <XAxis dataKey="name" hide />
-              <YAxis tick={axisTick} axisLine={axisLine} tickLine={axisLine} width={36} />
-              <Tooltip {...chartTooltipProps} cursor={{ fill: barCursorFill }} />
-              <Bar dataKey="chunks" fill={barFill} radius={[4, 4, 0, 0]} maxBarSize={48} />
-            </BarChart>
-          </ResponsiveContainer>
-        </article>
-      </section>
-
-      <section className="panel chart-panel chart-3d-panel">
-        <h2>{SECTION.exploration3d}</h2>
-        <p className="small">
-          {PRODUCT_NAME} exploration surface — Plotly <code>scatter3d</code> over{' '}
-          <code>MultivariatePoint[]</code>. Layer 0 corpus drives live axes; an empty corpus shows
-          a synthetic helix until you ingest sources and run queries that shape the memory layer.
-        </p>
-        <ChartErrorBoundary
-          chartName="Multivariate3DTemplate"
-          fallbackMessage="Plotly failed to load or render. Check the Console for stack details; restart with npm run dev:fresh after Vite config changes."
-        >
-          <Multivariate3DTemplate
-            points={multivariate3d.points}
-            axisTitles={multivariate3d.axisTitles}
-            height={440}
-            colorBy="value"
-            traceName="corpus-demo"
           />
-        </ChartErrorBoundary>
-      </section>
+          <ResultsPanel matches={matches} />
+        </>
+      )}
 
-      <section className="panel">
-        <h2>{SECTION.queryResults}</h2>
-        <div className="results">
-          {matches.length === 0 && (
-            <p className="small">No query results yet — run a query to feed the reactive memory layer.</p>
-          )}
-          {matches.map((match) => (
-            <article key={match.id} className="result-card">
-              <div className="result-head">
-                <span className="badge">Score: {match.score.toFixed(4)}</span>
-                <span className="badge">{match.file_type ?? 'unknown'}</span>
-                <span className="badge">Chunk: {match.chunk_index ?? '-'}</span>
-              </div>
-              <p className="mono">{match.source_path}</p>
-              <p>{match.content_preview || match.text || ''}</p>
-              <details>
-                <summary>Full text and metadata</summary>
-                <pre>{match.text}</pre>
-                <pre>{JSON.stringify(match.payload, null, 2)}</pre>
-              </details>
-            </article>
-          ))}
-        </div>
-      </section>
+      {activeTab === 'ingest' && (
+        <IngestPanel
+          ingestPath={ingestPath}
+          setIngestPath={setIngestPath}
+          ingestWholeDirectory={ingestWholeDirectory}
+          setIngestWholeDirectory={setIngestWholeDirectory}
+          ingestBusy={ingestBusy}
+          validateBusy={validateBusy}
+          cooldownActive={cooldownActive}
+          cooldownSecondsLeft={cooldownSecondsLeft}
+          loading={loading}
+          ingestResponse={ingestResponse}
+          validateResponse={validateResponse}
+          onValidate={() => void runValidate()}
+          onIngest={() => void runIngest()}
+        />
+      )}
+
+      {activeTab === 'corpus' && (
+        <CorpusPanel summary={summary} sources={sources} analytics={analytics} />
+      )}
+
+      {activeTab === 'analytics' && <AnalyticsPanel summary={summary} sources={sources} />}
     </main>
   )
 }

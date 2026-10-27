@@ -7,6 +7,8 @@ import {
 } from '../logging/uiLogger'
 import type {
   CorpusSummary,
+  CurationValidateRequest,
+  CurationValidateResponse,
   HealthResponse,
   IngestFileRequest,
   IngestPathRequest,
@@ -91,6 +93,13 @@ export const api = {
       '/ingest/file',
       { method: 'POST', body: JSON.stringify(body) },
       { ...ctx, label: ctx?.label ?? 'ingest.file' },
+    )
+  },
+  validateCuration(body: CurationValidateRequest, ctx?: ApiRequestContext) {
+    return requestJson<CurationValidateResponse>(
+      '/curation/validate',
+      { method: 'POST', body: JSON.stringify(body) },
+      { ...ctx, label: ctx?.label ?? 'curation.validate' },
     )
   },
 }

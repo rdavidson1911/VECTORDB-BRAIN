@@ -8,6 +8,7 @@ All Research Agent and Qdrant Agent findings live here.
 | `qdrant-schema-scenarios.md` | Research Agent | DRAFT |
 | `consolidation-trigger-analysis.md` | Research Agent | ACCEPTED |
 | `l2-l3-transfer-protocol.md` | Research Agent | DRAFT |
+| `rag-improvement-strategies-2026.md` | Research (foundation) | DRAFT |
 | `qdrant-schema-audit.md` | Qdrant Agent | DRAFT |
 | `qdrant-tuning.md` | Qdrant Agent | DRAFT |
 | `naming-audit-20260604.md` | Code Quality Agent | DRAFT |

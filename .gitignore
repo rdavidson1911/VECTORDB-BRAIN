@@ -23,7 +23,9 @@ data/processed/*
 !data/processed/.gitkeep
 
 # Management/Development/Internal
-.cursor/
+.cursor/*
+!.cursor/agents/
+!.cursor/agents/**
 .tasks/
 .vscode/
 .idea/
